@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 角色聊天助手</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="./role-chat-store.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell role-chat-shell">
+      <main class="role-chat-layout">
+        <aside class="role-chat-sidebar">
+          <div class="role-chat-sidebar-top">
+            <a class="role-chat-new-btn" href="./role-chat-create.html">新建</a>
+            <div class="role-chat-search">
+              <input id="roleChatSearch" type="search" placeholder="搜索角色" />
+            </div>
+          </div>
+          <section class="role-chat-list" id="roleChatList"></section>
+        </aside>
+
+        <section class="role-chat-panel">
+          <header class="role-chat-panel-header" id="roleChatPanelHeader"></header>
+          <div class="role-chat-messages" id="roleChatMessages"></div>
+          <form class="role-chat-inputbar" id="roleChatForm">
+            <textarea id="roleChatInput" placeholder="输入消息" rows="1"></textarea>
+            <button type="submit">发送</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8791/api/role-chat/reply";
+      const roleChatList = document.getElementById("roleChatList");
+      const roleChatSearch = document.getElementById("roleChatSearch");
+      const roleChatPanelHeader = document.getElementById("roleChatPanelHeader");
+      const roleChatMessages = document.getElementById("roleChatMessages");
+      const roleChatForm = document.getElementById("roleChatForm");
+      const roleChatInput = document.getElementById("roleChatInput");
+
+      let activeCharacter = null;
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function formatTime(value) {
+        const date = value ? new Date(value) : new Date();
+        return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function sanitizeAssistantReply(value) {
+        const text = String(value || "").trim();
+        return text.replace(/^(?:让我想想(?:\.\.\.|…)?|\.{3}|…{1,3})[,，]?\s*/u, "").trim() || text;
+      }
+
+      function renderSidebar() {
+        const keyword = roleChatSearch.value.trim().toLowerCase();
+        const characters = window.RoleChatStore.getCharacters().filter((item) => {
+          if (!keyword) {
+            return true;
+          }
+          return item.name.toLowerCase().includes(keyword) || item.description.toLowerCase().includes(keyword);
+        });
+
+        if (!characters.length) {
+          roleChatList.innerHTML = `
+            <article class="role-chat-empty-card">
+              <h3>还没有角色</h3>
+              <p>点击左上角“新建”，创建第一个角色聊天助手。</p>
+            </article>
+          `;
+          return;
+        }
+
+        roleChatList.innerHTML = "";
+        characters.forEach((character) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "role-chat-thread";
+          if (activeCharacter && activeCharacter.id === character.id) {
+            button.classList.add("is-active");
+          }
+          button.dataset.id = character.id;
+          button.innerHTML = `
+            <div class="role-chat-thread-avatar">
+              ${character.avatar ? `<img src="${character.avatar}" alt="${escapeHtml(character.name)}" />` : `<span>${escapeHtml(character.name.slice(0, 1))}</span>`}
+            </div>
+            <div class="role-chat-thread-body">
+              <div class="role-chat-thread-meta">
+                <strong>${escapeHtml(character.name)}</strong>
+                <time>${formatTime(character.updatedAt)}</time>
+              </div>
+              <p>${escapeHtml(window.RoleChatStore.formatPreviewText(character))}</p>
+            </div>
+          `;
+          roleChatList.appendChild(button);
+        });
+      }
+
+      function renderHeader() {
+        if (!activeCharacter) {
+          roleChatPanelHeader.innerHTML = `
+            <div class="role-chat-header-copy">
+              <h2>角色聊天助手</h2>
+              <p>先在左侧新建一个角色，再开始对话。</p>
+            </div>
+          `;
+          return;
+        }
+
+        roleChatPanelHeader.innerHTML = `
+          <div class="role-chat-header-profile">
+            <div class="role-chat-thread-avatar role-chat-thread-avatar-large">
+              ${activeCharacter.avatar ? `<img src="${activeCharacter.avatar}" alt="${escapeHtml(activeCharacter.name)}" />` : `<span>${escapeHtml(activeCharacter.name.slice(0, 1))}</span>`}
+            </div>
+            <div class="role-chat-header-copy">
+              <h2>${escapeHtml(activeCharacter.name)}</h2>
+            </div>
+          </div>
+          <div class="role-chat-menu">
+            <button class="role-chat-menu-trigger" type="button" id="roleChatMenuTrigger" aria-label="更多操作" aria-expanded="false">•••</button>
+            <div class="role-chat-menu-dropdown" id="roleChatMenuDropdown" hidden>
+              <a class="role-chat-menu-item" href="./role-chat-create.html?id=${encodeURIComponent(activeCharacter.id)}">修改角色</a>
+              <button class="role-chat-menu-item role-chat-menu-item-danger" type="button" id="roleChatDeleteButton">删除记录</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderMessages() {
+        if (!activeCharacter) {
+          roleChatMessages.innerHTML = `
+            <div class="role-chat-empty-panel">
+              <h3>开始一段角色对话</h3>
+              <p>角色描述、过往对话和参考信息会作为回复上下文传给大模型。</p>
+            </div>
+          `;
+          return;
+        }
+
+        const messages = activeCharacter.messages || [];
+        if (!messages.length) {
+          roleChatMessages.innerHTML = `
+            <div class="role-chat-empty-panel">
+              <h3>${escapeHtml(activeCharacter.name)}</h3>
+              <p>发送第一条消息，开始测试角色的说话方式和回应风格。</p>
+            </div>
+          `;
+          return;
+        }
+
+        roleChatMessages.innerHTML = messages
+          .map(
+            (message) => `
+              <article class="role-chat-bubble role-chat-bubble-${message.role === "user" ? "user" : "assistant"} ${message.isPending ? "is-pending" : ""}">
+                ${
+                  message.isPending
+                    ? `
+                      <div class="role-chat-thinking" aria-label="让我想想...">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    `
+                    : `
+                      <p>${escapeHtml(message.content)}</p>
+                      <time>${formatTime(message.createdAt)}</time>
+                    `
+                }
+              </article>
+            `
+          )
+          .join("");
+        roleChatMessages.scrollTop = roleChatMessages.scrollHeight;
+      }
+
+      function syncActiveCharacter() {
+        activeCharacter = window.RoleChatStore.getCurrentCharacter();
+        if (!activeCharacter) {
+          const [first] = window.RoleChatStore.getCharacters();
+          if (first) {
+            window.RoleChatStore.setCurrentCharacterId(first.id);
+            activeCharacter = first;
+          }
+        }
+      }
+
+      async function requestReply(character, userMessage) {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            character: {
+              name: character.name,
+              description: character.description,
+              pastDialogues: character.pastDialogues,
+              referenceInfo: character.referenceInfo
+            },
+            messages: [...(character.messages || []), userMessage].map((item) => ({
+              role: item.role,
+              content: item.content
+            }))
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || "角色回复失败。");
+        }
+        return payload.reply;
+      }
+
+      roleChatList.addEventListener("click", (event) => {
+        const button = event.target.closest(".role-chat-thread");
+        if (!button) {
+          return;
+        }
+        window.RoleChatStore.setCurrentCharacterId(button.dataset.id);
+        syncActiveCharacter();
+        renderSidebar();
+        renderHeader();
+        renderMessages();
+      });
+
+      roleChatPanelHeader.addEventListener("click", (event) => {
+        const trigger = event.target.closest("#roleChatMenuTrigger");
+        const deleteButton = event.target.closest("#roleChatDeleteButton");
+        const dropdown = document.getElementById("roleChatMenuDropdown");
+        const menuTrigger = document.getElementById("roleChatMenuTrigger");
+
+        if (trigger && dropdown && menuTrigger) {
+          const nextHidden = !dropdown.hidden;
+          dropdown.hidden = nextHidden;
+          menuTrigger.setAttribute("aria-expanded", String(!nextHidden));
+          return;
+        }
+
+        if (deleteButton && activeCharacter) {
+          window.RoleChatStore.deleteCharacter(activeCharacter.id);
+          syncActiveCharacter();
+          renderSidebar();
+          renderHeader();
+          renderMessages();
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        const menu = event.target.closest(".role-chat-menu");
+        const dropdown = document.getElementById("roleChatMenuDropdown");
+        const menuTrigger = document.getElementById("roleChatMenuTrigger");
+        if (menu || !dropdown || !menuTrigger) {
+          return;
+        }
+        dropdown.hidden = true;
+        menuTrigger.setAttribute("aria-expanded", "false");
+      });
+
+      roleChatSearch.addEventListener("input", renderSidebar);
+
+      roleChatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          roleChatForm.requestSubmit();
+        }
+      });
+
+      roleChatForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const content = roleChatInput.value.trim();
+        if (!content || !activeCharacter) {
+          return;
+        }
+
+        const userMessage = {
+          id: `message-${Date.now()}`,
+          role: "user",
+          content,
+          createdAt: new Date().toISOString()
+        };
+        const pendingMessage = {
+          id: `message-${Date.now()}-pending`,
+          role: "assistant",
+          content: "让我想想...",
+          createdAt: new Date().toISOString(),
+          isPending: true
+        };
+
+        window.RoleChatStore.appendMessage(activeCharacter.id, userMessage);
+        window.RoleChatStore.appendMessage(activeCharacter.id, pendingMessage);
+        roleChatInput.value = "";
+
+        syncActiveCharacter();
+        renderSidebar();
+        renderMessages();
+
+        try {
+          const reply = await requestReply(activeCharacter, userMessage);
+          window.RoleChatStore.replaceLastMessage(activeCharacter.id, {
+            id: `message-${Date.now()}-assistant`,
+            role: "assistant",
+            content: sanitizeAssistantReply(reply),
+            createdAt: new Date().toISOString()
+          });
+        } catch (error) {
+          window.RoleChatStore.replaceLastMessage(activeCharacter.id, {
+            id: `message-${Date.now()}-assistant-error`,
+            role: "assistant",
+            content: `回复失败：${error.message || "服务不可用"}`,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        syncActiveCharacter();
+        renderSidebar();
+        renderMessages();
+      });
+
+      function init() {
+        syncActiveCharacter();
+        renderSidebar();
+        renderHeader();
+        renderMessages();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

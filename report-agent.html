@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 报告生成智能体</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="./prompt-config.js"></script>
+    <script src="./report-task-store.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page">
+      <main class="report-flow">
+        <section class="report-header">
+          <div class="report-header-top">
+            <div class="report-header-title">
+              <h1>报告生成智能体</h1>
+            </div>
+          </div>
+
+          <ol class="flow-stepper" aria-label="方案生成步骤">
+            <li class="is-active">
+              <span class="step-index"><span class="step-index-label">01</span></span>
+              <div>
+                <strong>需求录入</strong>
+                <span>明确方案需求</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-index"><span class="step-index-label">02</span></span>
+              <div>
+                <strong>大纲确认</strong>
+                <span>确认结构与重点</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-index"><span class="step-index-label">03</span></span>
+              <div>
+                <strong>方案智写</strong>
+                <span>生成完整内容</span>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="report-card-shell">
+          <form class="report-card" id="reportForm" novalidate>
+            <div class="report-section">
+              <div class="field-heading">
+                <label for="planRequirement">方案需求 <em>*</em></label>
+                <p id="requirementHint">请尽量写明项目背景、目标、交付对象、风格偏好、重点章节与时间要求，便于后续自动生成更准确的方案。</p>
+              </div>
+
+              <div class="field-wrap">
+                <textarea
+                  id="planRequirement"
+                  name="planRequirement"
+                  class="lux-textarea"
+                  maxlength="20000"
+                  placeholder="请输入方案需求"
+                  aria-describedby="requirementHint requirementError"
+                ></textarea>
+                <div class="field-toolbar">
+                  <div class="ai-actions" aria-label="AI 辅助按钮">
+                    <button type="button" data-action="example">查看示例</button>
+                    <button type="button" data-action="complete">智能补全</button>
+                  </div>
+                  <span class="field-count" id="requirementCount">0 / 20000</span>
+                </div>
+                <p class="field-error" id="requirementError" hidden>请输入方案需求。</p>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <div class="field-heading">
+                <label for="planAttachment">方案附件</label>
+                <p>支持点击上传或拖拽上传，格式为 txt/doc/docx/pdf/xls/xlsx，单文件不超过 15MB。</p>
+              </div>
+
+              <div class="upload-group">
+                <label class="dropzone" id="dropzone" for="planAttachment">
+                  <input
+                    id="planAttachment"
+                    name="planAttachment"
+                    type="file"
+                    accept=".txt,.doc,.docx,.pdf,.xls,.xlsx"
+                  />
+                  <span class="dropzone-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 16V8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                      <path d="M8.5 11.5L12 8l3.5 3.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+                      <path d="M6 18h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                    </svg>
+                  </span>
+                  <strong>拖拽文件到此处，或点击上传</strong>
+                  <span>上传材料后会作为方案生成的参考附件</span>
+                </label>
+                <div class="field-error" id="attachmentError" hidden></div>
+                <div class="upload-list" id="uploadList" aria-live="polite"></div>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <div class="field-heading">
+                <label for="planName">方案名称 <em>*</em></label>
+                <p>建议使用对外可直接展示的标题，便于后续大纲和正文统一命名。</p>
+              </div>
+
+              <div class="field-wrap">
+                <input
+                  id="planName"
+                  name="planName"
+                  class="lux-input"
+                  type="text"
+                  maxlength="50"
+                  value="项目申报方案"
+                  placeholder="请输入方案名称"
+                  aria-describedby="nameError"
+                />
+                <div class="field-toolbar field-toolbar-end">
+                  <span class="field-count" id="nameCount">6 / 50</span>
+                </div>
+                <p class="field-error" id="nameError" hidden>请输入方案名称。</p>
+              </div>
+            </div>
+
+            <div class="report-actions">
+              <button class="report-btn report-btn-muted" type="button" id="saveDraft">保存草稿</button>
+              <button class="report-btn report-btn-primary" type="submit">下一步</button>
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <div class="generation-overlay" id="generationOverlay" hidden>
+        <div class="generation-overlay-panel">
+          <div class="generation-orbit">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p class="generation-kicker" id="generationOverlayKicker">AI Outline Engine</p>
+          <h2 id="generationOverlayTitle">大纲正在生成中</h2>
+          <p id="generationOverlayText">系统正在解析需求、组织目录层级并生成章节结构，请稍候片刻。</p>
+          <div class="generation-progress-track">
+            <div class="generation-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const DRAFT_KEY = "report-agent-draft";
+      const OUTLINE_KEY = "report-agent-outline";
+      const BASE_URL = "https://api.siliconflow.cn/v1";
+      const API_KEY = "sk-vhscuxbnmtrfabpusnssbbjfxszaslgpcrxegdnfpzlmvelv";
+      const MODEL = "Qwen/Qwen3-8B";
+      const API_URL = `${BASE_URL}/chat/completions`;
+      const promptConfig = window.ReportPromptConfig.getConfig();
+      const requirementInput = document.getElementById("planRequirement");
+      const nameInput = document.getElementById("planName");
+      const requirementCount = document.getElementById("requirementCount");
+      const nameCount = document.getElementById("nameCount");
+      const requirementError = document.getElementById("requirementError");
+      const nameError = document.getElementById("nameError");
+      const attachmentError = document.getElementById("attachmentError");
+      const form = document.getElementById("reportForm");
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("planAttachment");
+      const uploadList = document.getElementById("uploadList");
+      const saveDraftButton = document.getElementById("saveDraft");
+      const aiButtons = document.querySelectorAll(".ai-actions button");
+      const generationOverlay = document.getElementById("generationOverlay");
+      const generationOverlayKicker = document.getElementById("generationOverlayKicker");
+      const generationOverlayTitle = document.getElementById("generationOverlayTitle");
+      const generationOverlayText = document.getElementById("generationOverlayText");
+      const maxFileSize = 15 * 1024 * 1024;
+      const allowedExtensions = ["txt", "doc", "docx", "pdf", "xls", "xlsx"];
+      let currentFile = null;
+      let currentAttachmentData = null;
+
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js";
+      }
+
+      function updateCounter(input, counter, limit) {
+        counter.textContent = `${input.value.length} / ${limit}`;
+      }
+
+      function setFieldError(input, errorElement, message) {
+        const fieldWrap = input.closest(".field-wrap") || input.closest(".upload-group");
+        const hasMessage = Boolean(message);
+        input.classList.toggle("is-error", hasMessage);
+        if (fieldWrap) {
+          fieldWrap.classList.toggle("has-error", hasMessage);
+        }
+        errorElement.hidden = !hasMessage;
+        errorElement.textContent = message || "";
+      }
+
+      function formatSize(size) {
+        if (size < 1024 * 1024) {
+          return `${(size / 1024).toFixed(1)} KB`;
+        }
+        return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      function renderFile() {
+        uploadList.innerHTML = "";
+        if (!currentFile) {
+          return;
+        }
+
+        const parseStatus = currentAttachmentData?.parseStatus || "已上传";
+        const parseLabel = currentAttachmentData?.textContent
+          ? `${formatSize(currentFile.size)} · ${parseStatus}`
+          : `${formatSize(currentFile.size)} · ${parseStatus}`;
+
+        const card = document.createElement("article");
+        card.className = "file-card";
+        card.innerHTML = `
+          <div class="file-card-meta">
+            <span class="file-badge">附件</span>
+            <div>
+              <strong>${currentFile.name}</strong>
+              <p>${parseLabel}</p>
+            </div>
+          </div>
+          <button type="button" class="file-remove" aria-label="删除附件">删除</button>
+        `;
+
+        card.querySelector(".file-remove").addEventListener("click", () => {
+          currentFile = null;
+          currentAttachmentData = null;
+          fileInput.value = "";
+          saveDraft();
+          renderFile();
+        });
+
+        uploadList.appendChild(card);
+      }
+
+      function validateFile(file) {
+        if (!file) {
+          setFieldError(dropzone, attachmentError, "");
+          return true;
+        }
+
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (!allowedExtensions.includes(extension)) {
+          setFieldError(dropzone, attachmentError, "附件格式不支持，请上传 txt、doc、docx、pdf、xls 或 xlsx 文件。");
+          return false;
+        }
+
+        if (file.size > maxFileSize) {
+          setFieldError(dropzone, attachmentError, "附件大小不能超过 15MB。");
+          return false;
+        }
+
+        setFieldError(dropzone, attachmentError, "");
+        return true;
+      }
+
+      function applyFile(file) {
+        if (!validateFile(file)) {
+          currentFile = null;
+          currentAttachmentData = null;
+          fileInput.value = "";
+          saveDraft();
+          renderFile();
+          return;
+        }
+      }
+
+      function readAttachmentData(file) {
+        return new Promise((resolve) => {
+          const extension = file.name.split(".").pop().toLowerCase();
+          const attachment = {
+            name: file.name,
+            size: file.size,
+            type: file.type || extension,
+            extension,
+            textContent: "",
+            parseStatus: "已上传"
+          };
+
+          const finalize = (text, status) => {
+            attachment.textContent = String(text || "").slice(0, 12000);
+            attachment.parseStatus = status;
+            resolve(attachment);
+          };
+
+          const reader = new FileReader();
+
+          if (extension === "txt") {
+            reader.onload = () => finalize(reader.result, "已解析文本");
+            reader.onerror = () => finalize("", "解析失败，仅使用附件元信息");
+            reader.readAsText(file, "utf-8");
+            return;
+          }
+
+          if (extension === "docx") {
+            reader.onload = async () => {
+              try {
+                const result = await window.mammoth.extractRawText({ arrayBuffer: reader.result });
+                finalize(result.value, "已解析 docx");
+              } catch (error) {
+                finalize("", "docx 解析失败，仅使用附件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "docx 读取失败，仅使用附件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          if (extension === "pdf") {
+            reader.onload = async () => {
+              try {
+                const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(reader.result) }).promise;
+                const pages = [];
+                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                  const page = await pdf.getPage(pageNumber);
+                  const textContent = await page.getTextContent();
+                  const pageText = textContent.items.map((item) => item.str).join(" ");
+                  pages.push(pageText);
+                }
+                finalize(pages.join("\n"), "已解析 PDF");
+              } catch (error) {
+                finalize("", "PDF 解析失败，仅使用附件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "PDF 读取失败，仅使用附件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          if (extension === "xls" || extension === "xlsx") {
+            reader.onload = () => {
+              try {
+                const workbook = window.XLSX.read(reader.result, { type: "array" });
+                const sheetsText = workbook.SheetNames.map((sheetName) => {
+                  const sheet = workbook.Sheets[sheetName];
+                  const csv = window.XLSX.utils.sheet_to_csv(sheet);
+                  return `工作表：${sheetName}\n${csv}`;
+                }).join("\n\n");
+                finalize(sheetsText, "已解析表格");
+              } catch (error) {
+                finalize("", "表格解析失败，仅使用附件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "表格读取失败，仅使用附件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          finalize("", "暂不支持正文解析，仅使用附件元信息");
+        });
+      }
+
+      async function setCurrentFile(file) {
+        currentFile = file;
+        currentAttachmentData = file ? await readAttachmentData(file) : null;
+        saveDraft();
+        renderFile();
+      }
+
+      function showExampleContent() {
+        const example = `项目名称：2026 年区域产业园招商推介方案
+项目背景：需面向政府主管部门与意向企业，形成一份可用于汇报和路演的项目申报方案。
+核心目标：突出产业定位、招商优势、实施路径与预期成效。
+内容要求：希望包含项目背景、政策基础、产业分析、建设内容、实施计划、预算测算、风险控制和成果预期。
+风格偏好：正式、专业、逻辑清晰，适合 PPT 与文档双场景使用。`;
+
+        requirementInput.value = example;
+        updateCounter(requirementInput, requirementCount, 20000);
+        setFieldError(requirementInput, requirementError, "");
+        requirementInput.focus();
+      }
+
+      function hashText(text) {
+        let hash = 0;
+        for (let index = 0; index < text.length; index += 1) {
+          hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+        }
+        return String(hash);
+      }
+
+      function buildDraftSignature(draft) {
+        return hashText(`${draft.name || ""}::${draft.requirement || ""}`);
+      }
+
+      function normalizeLine(line) {
+        return line.replace(/\u3000/g, " ").trim();
+      }
+
+      function parseOutlineText(rawText) {
+        const lines = rawText
+          .split(/\r?\n/)
+          .map(normalizeLine)
+          .filter(Boolean);
+        const groups = [];
+        const groupMap = new Map();
+        const pattern = /^(\d+(?:\.\d+){0,4})[\.．、\s]*(.+)$/;
+
+        lines.forEach((line) => {
+          const match = line.match(pattern);
+          if (!match) {
+            return;
+          }
+
+          const numbering = match[1];
+          const title = match[2].trim();
+          const normalizedLine = `${numbering} ${title}`;
+          const topLevel = numbering.split(".")[0];
+          const level = numbering.split(".").length;
+
+          if (level === 1) {
+            const group = {
+              topLevel,
+              title: normalizedLine,
+              lines: [normalizedLine]
+            };
+            groups.push(group);
+            groupMap.set(topLevel, group);
+            return;
+          }
+
+          const parentGroup = groupMap.get(topLevel);
+          if (parentGroup) {
+            parentGroup.lines.push(normalizedLine);
+          }
+        });
+
+        return groups;
+      }
+
+      function buildAttachmentContext(attachment) {
+        if (!attachment) {
+          return "无附件。";
+        }
+
+        const summary = [
+          `附件名称：${attachment.name}`,
+          `附件格式：${attachment.extension || attachment.type || "未知"}`,
+          `附件大小：${formatSize(attachment.size || 0)}`
+        ];
+
+        if (attachment.textContent) {
+          summary.push("附件文本内容：");
+          summary.push(attachment.textContent);
+        } else {
+          summary.push("附件内容说明：当前原型仅直接读取 txt 文本附件，其余格式暂以文件元信息参与生成。");
+        }
+
+        return summary.join("\n");
+      }
+
+      function renderPrompt(template, vars) {
+        return window.ReportPromptConfig.render(template, vars);
+      }
+
+      function sanitizeRequirementCompletion(content) {
+        const normalized = String(content || "")
+          .replace(/^```(?:text|markdown)?\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim();
+
+        const lines = normalized
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const blockedPrefixes = [
+          "原始需求：",
+          "任务要求：",
+          "输出要求：",
+          "扩写结果：",
+          "补全结果：",
+          "优化后内容：",
+          "请严格基于",
+          "只能基于原文",
+          "输出为完整中文正文"
+        ];
+
+        const cleanedLines = lines.filter((line) => !blockedPrefixes.some((prefix) => line.startsWith(prefix)));
+        const cleanedText = cleanedLines.join("\n").trim();
+        return cleanedText || normalized;
+      }
+
+      async function requestChatCompletion({ systemPrompt, userPrompt, maxTokens = 2048, temperature = 0.3 }) {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            temperature,
+            max_tokens: maxTokens,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ]
+          })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error?.message || "请求失败，请稍后重试。");
+        }
+
+        const content = payload.choices?.[0]?.message?.content?.trim();
+        if (!content) {
+          throw new Error("模型没有返回可用内容。");
+        }
+
+        return content.replace(/^```(?:text|markdown)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      }
+
+      async function requestLevelOneBlueprint(draft) {
+        const prompt = renderPrompt(promptConfig.outlineLevelOneUser, {
+          planName: draft.name || "项目申报方案",
+          requirement: draft.requirement,
+          attachmentContext: buildAttachmentContext(draft.attachment)
+        });
+
+        const content = await requestChatCompletion({
+          systemPrompt: promptConfig.outlineLevelOneSystem,
+          userPrompt: prompt,
+          maxTokens: 2048,
+          temperature: 0.2
+        });
+
+        const sanitized = content.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+        let parsed;
+        try {
+          parsed = JSON.parse(sanitized);
+        } catch (error) {
+          throw new Error("一级大纲返回格式异常。");
+        }
+
+        if (!Array.isArray(parsed) || !parsed.length) {
+          throw new Error("一级大纲结果为空。");
+        }
+
+        return parsed
+          .map((item, index) => ({
+            id: String(item.id || index + 1),
+            title: normalizeLine(String(item.title || "")),
+            thought: normalizeLine(String(item.thought || ""))
+          }))
+          .filter((item) => item.title);
+      }
+
+      async function requestDetailedOutlineForTopLevel(draft, blueprintItem) {
+        const prompt = renderPrompt(promptConfig.outlineDetailUser, {
+          topLevelId: blueprintItem.id,
+          topLevelTitle: blueprintItem.title,
+          planName: draft.name || "项目申报方案",
+          requirement: draft.requirement,
+          attachmentContext: buildAttachmentContext(draft.attachment),
+          thought: blueprintItem.thought || "无"
+        });
+
+        return requestChatCompletion({
+          systemPrompt: promptConfig.outlineDetailSystem,
+          userPrompt: prompt,
+          maxTokens: 4096,
+          temperature: 0.25
+        });
+      }
+
+      async function completeRequirement() {
+        const requirementValue = requirementInput.value.trim();
+        if (!requirementValue) {
+          setFieldError(requirementInput, requirementError, "请先输入方案需求，再使用智能补全。");
+          requirementInput.focus();
+          return;
+        }
+
+        const completeButton = document.querySelector('[data-action="complete"]');
+        const originalText = completeButton.textContent;
+        completeButton.disabled = true;
+        showGenerationOverlay("正在智能扩写中", {
+          kicker: "AI Requirement Expansion",
+          title: "智能扩写中"
+        });
+        setFieldError(requirementInput, requirementError, "");
+
+        try {
+          const latestPromptConfig = window.ReportPromptConfig.getConfig();
+          const userPrompt = renderPrompt(latestPromptConfig.requirementCompleteUser, {
+            requirement: requirementValue
+          });
+          const content = await requestChatCompletion({
+            systemPrompt: latestPromptConfig.requirementCompleteSystem,
+            userPrompt,
+            maxTokens: 2200,
+            temperature: 0.25
+          });
+          requirementInput.value = sanitizeRequirementCompletion(content);
+          updateCounter(requirementInput, requirementCount, 20000);
+          saveDraft();
+          requirementInput.focus();
+          requirementInput.setSelectionRange(requirementInput.value.length, requirementInput.value.length);
+        } catch (error) {
+          setFieldError(requirementInput, requirementError, error.message || "智能补全失败，请稍后重试。");
+        } finally {
+          hideGenerationOverlay();
+          completeButton.disabled = false;
+          completeButton.textContent = originalText;
+        }
+      }
+
+      async function requestOutline(draft) {
+        generationOverlayText.textContent = "系统正在基于需求和附件提炼一级目录与章节思路。";
+        const blueprint = await requestLevelOneBlueprint(draft);
+        const groups = [];
+
+        for (let index = 0; index < blueprint.length; index += 1) {
+          const item = blueprint[index];
+          generationOverlayText.textContent = `正在扩展第 ${index + 1} / ${blueprint.length} 个一级章节：${item.id} ${item.title}`;
+          const content = await requestDetailedOutlineForTopLevel(draft, item);
+          const parsedGroups = parseOutlineText(content);
+          const matchedGroup = parsedGroups.find((group) => group.topLevel === item.id) || parsedGroups[0];
+          if (!matchedGroup) {
+            throw new Error(`一级章节 ${item.id} 未解析出有效细纲。`);
+          }
+          groups.push({
+            ...matchedGroup,
+            thought: item.thought || ""
+          });
+        }
+
+        return groups;
+      }
+
+      function showGenerationOverlay(text, options = {}) {
+        generationOverlay.hidden = false;
+        generationOverlayKicker.textContent = options.kicker || "AI Outline Engine";
+        generationOverlayTitle.textContent = options.title || "大纲正在生成中";
+        generationOverlayText.textContent = text;
+      }
+
+      function hideGenerationOverlay() {
+        generationOverlay.hidden = true;
+      }
+
+      function saveDraft() {
+        const payload = {
+          requirement: requirementInput.value,
+          name: nameInput.value,
+          attachment: currentAttachmentData
+        };
+        window.ReportTaskStore.saveDraft(payload);
+        return payload;
+      }
+
+      function restoreDraft() {
+        const record = window.ReportTaskStore.ensureCurrentRecord();
+        const draft = record?.draft;
+        if (!draft) {
+          return;
+        }
+
+        try {
+          requirementInput.value = draft.requirement || "";
+          nameInput.value = draft.name || "项目申报方案";
+          currentAttachmentData = draft.attachment || null;
+        } catch (error) {
+        }
+      }
+
+      requirementInput.addEventListener("input", () => {
+        updateCounter(requirementInput, requirementCount, 20000);
+        if (requirementInput.value.trim()) {
+          setFieldError(requirementInput, requirementError, "");
+        }
+        saveDraft();
+      });
+
+      nameInput.addEventListener("input", () => {
+        updateCounter(nameInput, nameCount, 50);
+        if (nameInput.value.trim()) {
+          setFieldError(nameInput, nameError, "");
+        }
+        saveDraft();
+      });
+
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          return;
+        }
+        if (!validateFile(file)) {
+          applyFile(file);
+          return;
+        }
+        await setCurrentFile(file);
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.add("is-dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("is-dragover");
+        });
+      });
+
+      dropzone.addEventListener("drop", async (event) => {
+        const file = event.dataTransfer.files[0];
+        if (!file) {
+          return;
+        }
+        if (!validateFile(file)) {
+          applyFile(file);
+          return;
+        }
+        await setCurrentFile(file);
+      });
+
+      aiButtons.forEach((button) => {
+        button.addEventListener("click", async () => {
+          if (button.dataset.action === "example") {
+            showExampleContent();
+            return;
+          }
+
+          if (button.dataset.action === "complete") {
+            await completeRequirement();
+          }
+        });
+      });
+
+      saveDraftButton.addEventListener("click", () => {
+        saveDraft();
+        window.alert("草稿已保存到当前任务记录。");
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const requirementValue = requirementInput.value.trim();
+        const nameValue = nameInput.value.trim();
+        let isValid = true;
+
+        if (!requirementValue) {
+          setFieldError(requirementInput, requirementError, "请输入方案需求。");
+          isValid = false;
+        } else if (requirementValue.length > 20000) {
+          setFieldError(requirementInput, requirementError, "方案需求不能超过 20000 字。");
+          isValid = false;
+        } else {
+          setFieldError(requirementInput, requirementError, "");
+        }
+
+        if (!nameValue) {
+          setFieldError(nameInput, nameError, "请输入方案名称。");
+          isValid = false;
+        } else if (nameValue.length > 50) {
+          setFieldError(nameInput, nameError, "方案名称不能超过 50 字。");
+          isValid = false;
+        } else {
+          setFieldError(nameInput, nameError, "");
+        }
+
+        if (!validateFile(currentFile)) {
+          isValid = false;
+        }
+
+        if (!isValid) {
+          return;
+        }
+
+        const draft = saveDraft();
+        form.querySelector('button[type="submit"]').disabled = true;
+        setFieldError(requirementInput, requirementError, "");
+        showGenerationOverlay("系统正在解析需求、调用大模型并构建分层目录，请稍候片刻。", {
+          kicker: "AI Outline Engine",
+          title: "大纲正在生成中"
+        });
+
+        try {
+          const groups = await requestOutline(draft);
+          if (!groups.length) {
+            throw new Error("未能解析出有效的大纲结构，请稍后重试。");
+          }
+
+          window.ReportTaskStore.saveOutline(
+            {
+              signature: buildDraftSignature(draft),
+              groups
+            },
+            { resetDoc: true }
+          );
+
+          generationOverlayText.textContent = "已完成目录切分，正在进入大纲确认页。";
+          window.location.href = "./report-outline.html";
+        } catch (error) {
+          hideGenerationOverlay();
+          setFieldError(requirementInput, requirementError, error.message || "大纲生成失败，请稍后重试。");
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+        }
+      });
+
+      restoreDraft();
+      updateCounter(requirementInput, requirementCount, 20000);
+      updateCounter(nameInput, nameCount, 50);
+    </script>
+  </body>
+</html>

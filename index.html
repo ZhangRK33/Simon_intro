@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 首页</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar topbar-tall">
+        <a class="brand" href="./index.html">Simon.</a>
+        <nav class="main-nav" aria-label="主导航">
+          <a class="active" href="./index.html">首页</a>
+          <a href="./work.html">作品</a>
+          <a href="./agent.html">智能体</a>
+          <a href="./about.html">关于</a>
+        </nav>
+        <div class="social-shortcuts" aria-label="社交链接">
+          <a href="#" aria-label="邮箱">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18v12H3z" fill="currentColor"></path>
+              <path d="M4 7l8 6 8-6" fill="none" stroke="#f3f3f3" stroke-width="1.5"></path>
+            </svg>
+          </a>
+          <a href="#" aria-label="推特">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M21 7.4c-.6.3-1.3.5-2 .6.7-.4 1.2-1 1.5-1.8-.7.4-1.4.7-2.1.9A3.4 3.4 0 0 0 16 6c-1.9 0-3.4 1.6-3.4 3.5 0 .3 0 .5.1.8-2.8-.1-5.4-1.5-7-3.7-.3.5-.5 1.1-.5 1.8 0 1.2.6 2.3 1.6 3-.6 0-1.1-.2-1.6-.4 0 1.7 1.2 3.1 2.8 3.4-.3.1-.6.1-.9.1-.2 0-.4 0-.6-.1.4 1.4 1.8 2.4 3.3 2.4A6.8 6.8 0 0 1 4 18.2 9.5 9.5 0 0 0 9.2 20c6.2 0 9.6-5.2 9.6-9.7v-.4c.6-.5 1.2-1.1 1.7-1.8Z"
+                fill="currentColor"
+              ></path>
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-inner">
+            <div class="hero-copy">
+              <h1>Hola!</h1>
+              <p>
+                这里展示我的个人简介、项目经历与持续进行中的创作内容。用更直接的方式，
+                让访问者快速了解我的设计方向与表达方式。
+              </p>
+              <div class="hero-actions">
+                <a class="btn btn-dark" href="./work.html">查看我的作品</a>
+                <a class="btn btn-outline" href="./about.html">进一步了解我</a>
+              </div>
+            </div>
+            <div class="hero-photo">
+              <img src="./assets/profile-portrait.svg" alt="Simon ZHANG 头像" />
+            </div>
+          </div>
+        </section>
+
+        <section class="content-section" id="about">
+          <div class="content-wrap">
+            <section class="section-block">
+              <h2>案例研究</h2>
+              <div class="case-grid">
+                <article class="case-card">
+                  <a href="./work.html">
+                    <img src="./assets/float-life.svg" alt="漂浮人生" />
+                    <h3>漂浮人生</h3>
+                    <p>围绕轻松生活方式展开的视觉项目，聚焦情绪表达与画面氛围的平衡呈现。</p>
+                  </a>
+                </article>
+                <article class="case-card">
+                  <a href="./work.html">
+                    <img src="./assets/retro-call.svg" alt="复古来电" />
+                    <h3>复古来电</h3>
+                    <p>一次复古产品视觉重构练习，强调物件质感、色彩对比和经典造型语言。</p>
+                  </a>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <h2>个人项目</h2>
+              <article class="media-row">
+                <img src="./assets/pills.svg" alt="蓝色胶囊实验" />
+                <div>
+                  <h3>蓝色胶囊实验</h3>
+                  <p>
+                    一个偏概念化的小型视觉项目，尝试用简单物体和高饱和背景构建更强的记忆点。
+                  </p>
+                  <time datetime="2023-01-29">2023 年 1 月 29 日</time>
+                </div>
+              </article>
+            </section>
+
+            <section class="section-block" id="recent-writing">
+              <h2>智能体</h2>
+              <div class="case-grid">
+                <article class="case-card">
+                  <a href="./report-list.html">
+                    <img src="./assets/banana.svg" alt="报告生成智能体" />
+                    <h3>报告生成智能体</h3>
+                    <p>用于录入方案需求、整理附件与生成完整报告流程的结构化智能助手。</p>
+                  </a>
+                </article>
+                <article class="case-card">
+                  <a href="./agent.html">
+                    <img src="./assets/pills.svg" alt="项目管理智能体" />
+                    <h3>项目管理智能体</h3>
+                    <p>帮助梳理任务优先级与推进节奏，让复杂项目具备更清晰的执行路径。</p>
+                  </a>
+                </article>
+              </div>
+              <a class="btn btn-outline posts-btn" href="./agent.html">查看全部智能体</a>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

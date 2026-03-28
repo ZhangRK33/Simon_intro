@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 角色设置</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="./role-chat-store.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page">
+      <main class="report-flow role-chat-create-page">
+        <section class="report-header">
+          <div class="report-header-top">
+            <div class="report-header-title">
+              <h1 id="roleChatCreateTitle">新建角色聊天助手</h1>
+            </div>
+          </div>
+        </section>
+
+        <form class="report-card role-chat-create-card" id="roleChatCreateForm" novalidate>
+          <div class="role-chat-create-grid">
+            <div class="role-chat-avatar-panel">
+              <div class="role-chat-avatar-preview" id="roleAvatarPreview">
+                <span>上传头像</span>
+              </div>
+              <label class="report-btn report-btn-muted role-chat-upload-btn" for="roleAvatarInput">选择头像</label>
+              <input id="roleAvatarInput" type="file" accept="image/*" hidden />
+            </div>
+
+            <div class="role-chat-form-panel">
+              <div class="field-wrap">
+                <label for="roleName">角色名称 <em>*</em></label>
+                <p class="field-hint">用于出现在左侧对话列表和会话头部。</p>
+                <input class="lux-input" id="roleName" name="roleName" type="text" placeholder="请输入角色名称" maxlength="40" />
+                <p class="field-error" id="roleNameError" hidden>请输入角色名称。</p>
+              </div>
+
+              <div class="field-wrap">
+                <label for="roleDescription">角色描述 <em>*</em></label>
+                <p class="field-hint">描述性格、身份、语气、禁忌和回复风格。</p>
+                <textarea class="lux-textarea" id="roleDescription" name="roleDescription" placeholder="请输入角色描述" rows="7"></textarea>
+                <p class="field-error" id="roleDescriptionError" hidden>请输入角色描述。</p>
+              </div>
+
+              <div class="field-wrap">
+                <label for="pastDialogues">人物过往对话</label>
+                <p class="field-hint">支持上传 `txt/md/json`，也可直接粘贴内容。</p>
+                <input id="pastDialoguesFile" type="file" accept=".txt,.md,.json" hidden />
+                <textarea class="lux-textarea" id="pastDialogues" name="pastDialogues" placeholder="粘贴角色过往聊天内容" rows="8"></textarea>
+                <div class="role-chat-inline-upload">
+                  <label class="outline-chip-btn role-chat-inline-upload-btn" for="pastDialoguesFile">上传文件</label>
+                  <span id="pastDialoguesFileName">未选择文件</span>
+                </div>
+              </div>
+
+              <div class="field-wrap">
+                <label for="referenceInfo">参考信息</label>
+                <p class="field-hint">用于补充设定、背景资料、关系链或表达习惯。</p>
+                <input id="referenceInfoFile" type="file" accept=".txt,.md,.json" hidden />
+                <textarea class="lux-textarea" id="referenceInfo" name="referenceInfo" placeholder="粘贴角色参考信息" rows="8"></textarea>
+                <div class="role-chat-inline-upload">
+                  <label class="outline-chip-btn role-chat-inline-upload-btn" for="referenceInfoFile">上传文件</label>
+                  <span id="referenceInfoFileName">未选择文件</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="outline-page-actions">
+            <a class="report-btn report-btn-muted report-btn-wide" href="./role-chat.html">返回聊天页</a>
+            <button class="report-btn report-btn-primary report-btn-wide" type="submit" id="roleChatSubmitButton">创建角色</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      const form = document.getElementById("roleChatCreateForm");
+      const roleChatCreateTitle = document.getElementById("roleChatCreateTitle");
+      const roleChatSubmitButton = document.getElementById("roleChatSubmitButton");
+      const roleAvatarInput = document.getElementById("roleAvatarInput");
+      const roleAvatarPreview = document.getElementById("roleAvatarPreview");
+      const roleName = document.getElementById("roleName");
+      const roleDescription = document.getElementById("roleDescription");
+      const roleNameError = document.getElementById("roleNameError");
+      const roleDescriptionError = document.getElementById("roleDescriptionError");
+      const pastDialogues = document.getElementById("pastDialogues");
+      const referenceInfo = document.getElementById("referenceInfo");
+      const pastDialoguesFile = document.getElementById("pastDialoguesFile");
+      const referenceInfoFile = document.getElementById("referenceInfoFile");
+      const pastDialoguesFileName = document.getElementById("pastDialoguesFileName");
+      const referenceInfoFileName = document.getElementById("referenceInfoFileName");
+      const editId = new URLSearchParams(window.location.search).get("id") || "";
+
+      let avatarData = "";
+
+      function setFieldError(field, target, message) {
+        const wrap = field.closest(".field-wrap");
+        wrap.classList.toggle("has-error", Boolean(message));
+        target.hidden = !message;
+        target.textContent = message || "";
+      }
+
+      async function readTextFile(file) {
+        return file.text();
+      }
+
+      function handleAvatarChange(file) {
+        if (!file) {
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          avatarData = String(reader.result || "");
+          roleAvatarPreview.innerHTML = `<img src="${avatarData}" alt="角色头像预览" />`;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      async function handleTextUpload(file, target, label) {
+        if (!file) {
+          return;
+        }
+        const text = await readTextFile(file);
+        target.value = text;
+        label.textContent = file.name;
+      }
+
+      function hydrateEditMode() {
+        if (!editId) {
+          return;
+        }
+        const character = window.RoleChatStore.getCharacterById(editId);
+        if (!character) {
+          return;
+        }
+        roleChatCreateTitle.textContent = "修改角色聊天助手";
+        roleChatSubmitButton.textContent = "保存修改";
+        roleName.value = character.name || "";
+        roleDescription.value = character.description || "";
+        pastDialogues.value = character.pastDialogues || "";
+        referenceInfo.value = character.referenceInfo || "";
+        avatarData = character.avatar || "";
+        if (avatarData) {
+          roleAvatarPreview.innerHTML = `<img src="${avatarData}" alt="角色头像预览" />`;
+        }
+      }
+
+      roleAvatarInput.addEventListener("change", () => handleAvatarChange(roleAvatarInput.files?.[0]));
+      pastDialoguesFile.addEventListener("change", async () => handleTextUpload(pastDialoguesFile.files?.[0], pastDialogues, pastDialoguesFileName));
+      referenceInfoFile.addEventListener("change", async () => handleTextUpload(referenceInfoFile.files?.[0], referenceInfo, referenceInfoFileName));
+
+      roleName.addEventListener("input", () => setFieldError(roleName, roleNameError, ""));
+      roleDescription.addEventListener("input", () => setFieldError(roleDescription, roleDescriptionError, ""));
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        let valid = true;
+
+        if (!roleName.value.trim()) {
+          setFieldError(roleName, roleNameError, "请输入角色名称。");
+          valid = false;
+        } else {
+          setFieldError(roleName, roleNameError, "");
+        }
+
+        if (!roleDescription.value.trim()) {
+          setFieldError(roleDescription, roleDescriptionError, "请输入角色描述。");
+          valid = false;
+        } else {
+          setFieldError(roleDescription, roleDescriptionError, "");
+        }
+
+        if (!valid) {
+          return;
+        }
+
+        if (editId) {
+          window.RoleChatStore.updateCharacter(editId, (current) => ({
+            ...current,
+            name: roleName.value.trim(),
+            avatar: avatarData,
+            description: roleDescription.value.trim(),
+            pastDialogues: pastDialogues.value.trim(),
+            referenceInfo: referenceInfo.value.trim()
+          }));
+          window.RoleChatStore.setCurrentCharacterId(editId);
+        } else {
+          window.RoleChatStore.createCharacter({
+            name: roleName.value.trim(),
+            avatar: avatarData,
+            description: roleDescription.value.trim(),
+            pastDialogues: pastDialogues.value.trim(),
+            referenceInfo: referenceInfo.value.trim(),
+            messages: []
+          });
+        }
+
+        window.location.href = "./role-chat.html";
+      });
+
+      hydrateEditMode();
+    </script>
+  </body>
+</html>

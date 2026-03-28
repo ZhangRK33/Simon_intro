@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 报告生成记录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="./report-task-store.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page">
+      <div class="report-app-shell">
+        <aside class="report-side-nav" aria-label="页面导航">
+          <nav class="report-side-nav-menu">
+            <button class="report-side-nav-item is-active" type="button" data-view-target="agent">
+              <span class="report-side-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="4" y="5" width="16" height="14" rx="4"></rect>
+                  <circle cx="9" cy="12" r="1.4"></circle>
+                  <circle cx="15" cy="12" r="1.4"></circle>
+                  <path d="M8.5 15.5c1 .8 2.1 1.2 3.5 1.2s2.5-.4 3.5-1.2"></path>
+                </svg>
+              </span>
+              <span>
+                <strong>智能体</strong>
+                <em>智能报告生成</em>
+              </span>
+            </button>
+            <button class="report-side-nav-item" type="button" data-view-target="knowledge">
+              <span class="report-side-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M7 5.5A2.5 2.5 0 0 1 9.5 3H18v16h-8.5A2.5 2.5 0 0 0 7 21.5z"></path>
+                  <path d="M7 5.5A2.5 2.5 0 0 0 4.5 8v11A2.5 2.5 0 0 1 7 16.5H18"></path>
+                </svg>
+              </span>
+              <span>
+                <strong>知识库</strong>
+                <em>检索与管理</em>
+              </span>
+            </button>
+          </nav>
+        </aside>
+
+        <main class="report-main-panel">
+          <section class="report-flow report-history-flow report-view-panel is-active" data-view-panel="agent">
+            <section class="report-header">
+              <div class="report-header-top">
+                <div class="report-header-title">
+                  <h1>报告生成智能体</h1>
+                </div>
+              </div>
+            </section>
+
+            <section class="report-history-toolbar">
+              <button class="report-btn report-btn-primary report-history-create-btn" type="button" id="createReportTask">新建任务</button>
+            </section>
+
+            <section class="report-history-table-shell">
+              <div class="report-history-table-head" aria-hidden="true">
+                <span>任务名称</span>
+                <span>需求摘要</span>
+                <span>最近更新</span>
+                <span>状态</span>
+                <span>操作</span>
+              </div>
+              <section class="report-history-list" id="reportHistoryList"></section>
+            </section>
+
+            <div class="outline-empty-state report-history-empty" id="reportHistoryEmpty" hidden>
+              <h2>还没有历史任务</h2>
+              <p>点击右上角“新建任务”后，会从需求录入开始创建第一条报告生成记录。</p>
+            </div>
+
+            <div class="report-history-pagination" id="reportHistoryPagination" hidden>
+              <button class="report-btn report-btn-muted" type="button" id="reportPrevPage">上一页</button>
+              <span id="reportPageText">第 1 / 1 页</span>
+              <button class="report-btn report-btn-muted" type="button" id="reportNextPage">下一页</button>
+            </div>
+          </section>
+
+          <section class="report-flow report-history-flow report-view-panel" data-view-panel="knowledge">
+            <section class="knowledge-screen is-active" id="knowledgeOverviewScreen">
+              <section class="report-header report-knowledge-header">
+                <div class="report-header-top report-knowledge-header-top">
+                  <div class="report-header-title report-knowledge-title-wrap">
+                    <div class="report-knowledge-title-group">
+                      <span class="report-knowledge-logo" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <path d="M6.5 4.5A2.5 2.5 0 0 1 9 2h8.5v16H9a2.5 2.5 0 0 0-2.5 2.5z"></path>
+                          <path d="M6.5 4.5A2.5 2.5 0 0 0 4 7v10.5A2.5 2.5 0 0 1 6.5 15H17.5"></path>
+                          <path d="M13.2 16.8l2-2 1.4 1.4-2 2"></path>
+                        </svg>
+                      </span>
+                      <h1>知识库</h1>
+                    </div>
+                  </div>
+                  <div class="report-knowledge-actions">
+                    <label class="report-search-field">
+                      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6.5"></circle>
+                        <path d="M16 16l4 4"></path>
+                      </svg>
+                      <input id="knowledgeSearchInput" type="search" placeholder="搜索知识库" />
+                    </label>
+                    <button class="report-btn report-btn-primary knowledge-create-btn" type="button" id="openKnowledgeModal">+ 创建知识库</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="knowledge-library-shell">
+                <div class="knowledge-card-grid" id="knowledgeCardGrid"></div>
+                <div class="outline-empty-state report-history-empty" id="knowledgeEmpty" hidden>
+                  <h2>还没有知识库</h2>
+                  <p>点击右上角“创建知识库”后，建立第一套可供智能体检索的知识资产。</p>
+                </div>
+              </section>
+            </section>
+
+            <section class="knowledge-screen" id="knowledgeDetailScreen">
+              <section class="knowledge-detail-shell" id="knowledgeDetailShell">
+                <div class="knowledge-detail-head">
+                  <div class="knowledge-detail-title-block">
+                    <button class="knowledge-detail-back" type="button" id="knowledgeBackButton">返回知识库</button>
+                    <h2 id="knowledgeDetailTitle">知识库详情</h2>
+                    <p id="knowledgeDetailDescription">选择左侧知识库后，可在这里查看文件清单与检索配置。</p>
+                  </div>
+                  <div class="knowledge-detail-action-group">
+                    <button class="report-btn report-btn-primary knowledge-file-add-btn" type="button" id="knowledgeAddFileButton">+ 添加文件</button>
+                    <input
+                      id="knowledgeFileInput"
+                      type="file"
+                      accept=".txt,.doc,.docx,.pdf,.xls,.xlsx"
+                      multiple
+                      hidden
+                    />
+                  </div>
+                </div>
+
+                <div class="knowledge-detail-toolbar">
+                  <label class="report-search-field report-search-field-compact">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <circle cx="11" cy="11" r="6.5"></circle>
+                      <path d="M16 16l4 4"></path>
+                    </svg>
+                    <input id="knowledgeFileSearchInput" type="search" placeholder="搜索文件" />
+                  </label>
+                  <div class="knowledge-sort-pill">排序：上传时间</div>
+                </div>
+                <div class="knowledge-upload-hint">支持点击上传或拖拽上传，格式为 txt/doc/docx/pdf/xls/xlsx，单文件不超过 15MB。</div>
+                <div class="knowledge-upload-feedback" id="knowledgeUploadFeedback" hidden></div>
+                <div class="knowledge-upload-error" id="knowledgeUploadError" hidden></div>
+
+                <section class="knowledge-file-table-shell">
+                  <div class="knowledge-file-table-head" aria-hidden="true">
+                    <span>#</span>
+                    <span>名称</span>
+                    <span>分段模式</span>
+                    <span>字符数</span>
+                    <span>召回次数</span>
+                    <span>上传时间</span>
+                    <span>状态</span>
+                  </div>
+                  <div class="knowledge-file-list" id="knowledgeFileList"></div>
+                </section>
+                <div class="knowledge-pagination" id="knowledgePagination" hidden>
+                  <button class="knowledge-page-btn" type="button" id="knowledgePrevPage">上一页</button>
+                  <span class="knowledge-page-text" id="knowledgePageText">第 1 / 1 页</span>
+                  <button class="knowledge-page-btn" type="button" id="knowledgeNextPage">下一页</button>
+                </div>
+              </section>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="knowledge-modal" id="knowledgeModal" hidden>
+      <div class="knowledge-modal-backdrop" data-close-knowledge-modal="true"></div>
+      <section class="knowledge-modal-card" aria-modal="true" role="dialog" aria-labelledby="knowledgeModalTitle">
+        <div class="knowledge-modal-head">
+          <h2 id="knowledgeModalTitle">创建知识库</h2>
+          <button class="knowledge-modal-close" type="button" aria-label="关闭" data-close-knowledge-modal="true">×</button>
+        </div>
+        <form class="knowledge-modal-form" id="knowledgeForm">
+          <label class="knowledge-modal-field">
+            <span>* 名称</span>
+            <input class="lux-input" type="text" name="name" placeholder="请输入名称" required />
+          </label>
+          <label class="knowledge-modal-field">
+            <span>描述</span>
+            <textarea class="lux-textarea knowledge-modal-textarea" name="description" placeholder="请输入知识库描述"></textarea>
+          </label>
+          <label class="knowledge-modal-field">
+            <span>* 嵌入模型</span>
+            <select class="lux-input lux-select" name="embedding" required>
+              <option value="">请选择嵌入模型</option>
+              <option value="text-embedding-3-large">text-embedding-3-large</option>
+              <option value="text-embedding-3-small">text-embedding-3-small</option>
+            </select>
+          </label>
+          <label class="knowledge-modal-field">
+            <span>* 内置</span>
+            <select class="lux-input lux-select" name="chunking" required>
+              <option value="">请选择分块方法</option>
+              <option value="通用">通用</option>
+              <option value="按标题">按标题</option>
+              <option value="按段落">按段落</option>
+            </select>
+          </label>
+          <div class="knowledge-modal-actions">
+            <button class="report-btn report-btn-primary" type="submit">保存</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      const reportHistoryList = document.getElementById("reportHistoryList");
+      const reportHistoryEmpty = document.getElementById("reportHistoryEmpty");
+      const createReportTask = document.getElementById("createReportTask");
+      const reportHistoryPagination = document.getElementById("reportHistoryPagination");
+      const reportPrevPage = document.getElementById("reportPrevPage");
+      const reportNextPage = document.getElementById("reportNextPage");
+      const reportPageText = document.getElementById("reportPageText");
+      const sideNavItems = Array.from(document.querySelectorAll("[data-view-target]"));
+      const viewPanels = Array.from(document.querySelectorAll("[data-view-panel]"));
+      const knowledgeSearchInput = document.getElementById("knowledgeSearchInput");
+      const knowledgeFileSearchInput = document.getElementById("knowledgeFileSearchInput");
+      const knowledgeCardGrid = document.getElementById("knowledgeCardGrid");
+      const knowledgeEmpty = document.getElementById("knowledgeEmpty");
+      const knowledgeOverviewScreen = document.getElementById("knowledgeOverviewScreen");
+      const knowledgeDetailScreen = document.getElementById("knowledgeDetailScreen");
+      const knowledgeDetailShell = document.getElementById("knowledgeDetailShell");
+      const knowledgeDetailTitle = document.getElementById("knowledgeDetailTitle");
+      const knowledgeDetailDescription = document.getElementById("knowledgeDetailDescription");
+      const knowledgeFileList = document.getElementById("knowledgeFileList");
+      const knowledgePagination = document.getElementById("knowledgePagination");
+      const knowledgePrevPage = document.getElementById("knowledgePrevPage");
+      const knowledgeNextPage = document.getElementById("knowledgeNextPage");
+      const knowledgePageText = document.getElementById("knowledgePageText");
+      const openKnowledgeModal = document.getElementById("openKnowledgeModal");
+      const knowledgeModal = document.getElementById("knowledgeModal");
+      const knowledgeForm = document.getElementById("knowledgeForm");
+      const knowledgeAddFileButton = document.getElementById("knowledgeAddFileButton");
+      const knowledgeFileInput = document.getElementById("knowledgeFileInput");
+      const knowledgeBackButton = document.getElementById("knowledgeBackButton");
+      const knowledgeUploadFeedback = document.getElementById("knowledgeUploadFeedback");
+      const knowledgeUploadError = document.getElementById("knowledgeUploadError");
+      const knowledgeModalTitle = document.getElementById("knowledgeModalTitle");
+      const knowledgeSubmitButton = knowledgeForm.querySelector("button[type='submit']");
+      const PAGE_SIZE = 5;
+      const KNOWLEDGE_KEY = "report-agent-knowledge-bases";
+      const KNOWLEDGE_FILE_PAGE_SIZE = 4;
+      const KNOWLEDGE_ALLOWED_EXTENSIONS = ["txt", "doc", "docx", "pdf", "xls", "xlsx"];
+      const KNOWLEDGE_MAX_FILE_SIZE = 15 * 1024 * 1024;
+      let currentPage = 1;
+      let selectedKnowledgeId = "";
+      let knowledgeCurrentPage = 1;
+      let knowledgeModalMode = "create";
+      let editingKnowledgeId = "";
+      let openKnowledgeMenuId = "";
+
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js";
+      }
+
+      const seededKnowledgeBases = [
+        {
+          id: "kb-traffic-governance",
+          name: "交通治理知识库",
+          description: "收录交通治理方案、运行分析报告、政策制度和典型案例，支撑智能检索与业务引用。",
+          embedding: "text-embedding-3-large",
+          chunking: "通用",
+          fileCount: 18,
+          updatedAt: "2025-03-09T17:06:34",
+          files: [
+            { id: "file-1", name: "普华永道_储能行业趋势洞察.pdf", chunking: "通用", chars: "16k", recalls: 14, uploadedAt: "2025-06-23 08:41", status: "已禁用" },
+            { id: "file-2", name: "创新研报｜2024中国充电基础设施服务质量发展报告.pdf", chunking: "通用", chars: "0", recalls: 0, uploadedAt: "2025-06-23 08:40", status: "已禁用" },
+            { id: "file-3", name: "2024年电力行业分析.pdf", chunking: "通用", chars: "8.2k", recalls: 31, uploadedAt: "2025-06-23 08:38", status: "已禁用" },
+            { id: "file-4", name: "电动汽车充电基础设施建设与运营优化解决方案.pdf", chunking: "通用", chars: "33.9k", recalls: 0, uploadedAt: "2025-06-23 08:35", status: "已禁用" }
+          ]
+        }
+      ];
+
+      function formatDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return "--";
+        }
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function getStageText(record) {
+        if (record.doc) {
+          return "报告生成完成";
+        }
+        if (record.docProgress || record.step >= 3) {
+          return "方案智写中";
+        }
+        if (record.outline || record.step >= 2) {
+          return "大纲确认中";
+        }
+        return "需求录入中";
+      }
+
+      function getStatusState(record) {
+        if (record.doc) {
+          return "success";
+        }
+        if (record.docProgress || record.step >= 3) {
+          return "loading";
+        }
+        return "idle";
+      }
+
+      function getKnowledgeBases() {
+        const raw = localStorage.getItem(KNOWLEDGE_KEY);
+        if (!raw) {
+          localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(seededKnowledgeBases));
+          return [...seededKnowledgeBases];
+        }
+        try {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data) && data.length > 0) {
+            return data;
+          }
+        } catch (error) {
+          console.warn("知识库数据解析失败，将回退到默认数据。", error);
+        }
+        localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(seededKnowledgeBases));
+        return [...seededKnowledgeBases];
+      }
+
+      function saveKnowledgeBases(records) {
+        localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(records));
+      }
+
+      function getKnowledgeBaseById(id) {
+        return getKnowledgeBases().find((item) => item.id === id) || null;
+      }
+
+      function getActiveKnowledgeBase(filtered = getFilteredKnowledgeBases()) {
+        if (!filtered.length) {
+          return null;
+        }
+        return filtered.find((item) => item.id === selectedKnowledgeId) || null;
+      }
+
+      function getFilteredKnowledgeBases() {
+        const keyword = knowledgeSearchInput.value.trim().toLowerCase();
+        return getKnowledgeBases().filter((item) => {
+          if (!keyword) {
+            return true;
+          }
+          return `${item.name} ${item.description}`.toLowerCase().includes(keyword);
+        });
+      }
+
+      function formatKnowledgeCharCount(length) {
+        if (!length) {
+          return "0";
+        }
+        if (length >= 1000) {
+          return `${(length / 1000).toFixed(length >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`;
+        }
+        return String(length);
+      }
+
+      function setKnowledgeFeedback(message = "") {
+        knowledgeUploadFeedback.hidden = !message;
+        knowledgeUploadFeedback.textContent = message;
+      }
+
+      function setKnowledgeError(message = "") {
+        knowledgeUploadError.hidden = !message;
+        knowledgeUploadError.textContent = message;
+      }
+
+      function resetKnowledgeModalState() {
+        knowledgeModalMode = "create";
+        editingKnowledgeId = "";
+        knowledgeModalTitle.textContent = "创建知识库";
+        knowledgeSubmitButton.textContent = "保存";
+        knowledgeForm.reset();
+      }
+
+      function populateKnowledgeForm(record) {
+        knowledgeForm.elements.name.value = record.name || "";
+        knowledgeForm.elements.description.value = record.description || "";
+        knowledgeForm.elements.embedding.value = record.embedding || "";
+        knowledgeForm.elements.chunking.value = record.chunking || "";
+      }
+
+      function openKnowledgeModalDialog(mode = "create", knowledgeId = "") {
+        resetKnowledgeModalState();
+        knowledgeModalMode = mode;
+        if (mode === "edit" && knowledgeId) {
+          const record = getKnowledgeBaseById(knowledgeId);
+          if (!record) {
+            return;
+          }
+          editingKnowledgeId = knowledgeId;
+          knowledgeModalTitle.textContent = "编辑知识库";
+          knowledgeSubmitButton.textContent = "保存修改";
+          populateKnowledgeForm(record);
+        }
+        knowledgeModal.hidden = false;
+        document.body.classList.add("modal-open");
+      }
+
+      function renderKnowledgeCards() {
+        const knowledgeBases = getFilteredKnowledgeBases();
+        knowledgeCardGrid.innerHTML = "";
+        knowledgeEmpty.hidden = knowledgeBases.length > 0;
+
+        knowledgeBases.forEach((item, index) => {
+          const card = document.createElement("article");
+          card.className = `knowledge-card${item.id === selectedKnowledgeId ? " is-active" : ""}`;
+          card.dataset.knowledgeId = item.id;
+          card.innerHTML = `
+            <div class="knowledge-card-head">
+              <div class="knowledge-card-index">${index + 1}</div>
+              <h3>${item.name}</h3>
+              <div class="knowledge-card-menu role-chat-menu">
+                <button class="role-chat-menu-trigger" type="button" aria-label="知识库操作" data-knowledge-menu="${item.id}" aria-expanded="${openKnowledgeMenuId === item.id ? "true" : "false"}">···</button>
+                <div class="role-chat-menu-dropdown"${openKnowledgeMenuId === item.id ? "" : " hidden"}>
+                  <button class="role-chat-menu-item" type="button" data-knowledge-edit="${item.id}">编辑</button>
+                  <button class="role-chat-menu-item role-chat-menu-item-danger" type="button" data-knowledge-delete="${item.id}">删除</button>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-card-body">
+              <p>${item.description || "暂无知识库描述。"}</p>
+              <div class="knowledge-card-meta">
+                <span>${item.fileCount || item.files.length} files</span>
+                <span>${formatDate(item.updatedAt)}</span>
+              </div>
+            </div>
+          `;
+          knowledgeCardGrid.appendChild(card);
+        });
+      }
+
+      function renderKnowledgeDetail() {
+        const knowledgeBase = getActiveKnowledgeBase();
+        if (!knowledgeBase) {
+          knowledgeFileSearchInput.value = "";
+          knowledgePagination.hidden = true;
+          return;
+        }
+
+        knowledgeDetailTitle.textContent = knowledgeBase.name;
+        knowledgeDetailDescription.textContent = knowledgeBase.description || "暂无描述";
+
+        const keyword = knowledgeFileSearchInput.value.trim().toLowerCase();
+        const files = (knowledgeBase.files || []).filter((file) => {
+          if (!keyword) {
+            return true;
+          }
+          return file.name.toLowerCase().includes(keyword);
+        });
+
+        knowledgeFileList.innerHTML = "";
+        if (!files.length) {
+          knowledgeFileList.innerHTML = `<div class="knowledge-file-empty">${keyword ? "暂无匹配文件" : "暂无文件，点击右上角添加文件"}</div>`;
+          knowledgePagination.hidden = true;
+          return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(files.length / KNOWLEDGE_FILE_PAGE_SIZE));
+        knowledgeCurrentPage = Math.min(knowledgeCurrentPage, totalPages);
+        const startIndex = (knowledgeCurrentPage - 1) * KNOWLEDGE_FILE_PAGE_SIZE;
+        const pageFiles = files.slice(startIndex, startIndex + KNOWLEDGE_FILE_PAGE_SIZE);
+        knowledgePagination.hidden = files.length <= KNOWLEDGE_FILE_PAGE_SIZE;
+        knowledgePageText.textContent = `第 ${knowledgeCurrentPage} / ${totalPages} 页`;
+        knowledgePrevPage.disabled = knowledgeCurrentPage === 1;
+        knowledgeNextPage.disabled = knowledgeCurrentPage === totalPages;
+
+        pageFiles.forEach((file, index) => {
+          const row = document.createElement("article");
+          row.className = "knowledge-file-row";
+          row.innerHTML = `
+            <span>${startIndex + index + 1}</span>
+            <strong title="${file.name}">${file.name}</strong>
+            <span><i class="knowledge-chip-icon"></i>${file.chunking}</span>
+            <span>${file.chars}</span>
+            <span>${file.recalls}</span>
+            <span>${file.uploadedAt}</span>
+            <span class="knowledge-file-status"><i></i>${file.status}</span>
+          `;
+          knowledgeFileList.appendChild(row);
+        });
+      }
+
+      function setActiveView(view) {
+        sideNavItems.forEach((item) => {
+          item.classList.toggle("is-active", item.dataset.viewTarget === view);
+        });
+        viewPanels.forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
+        });
+        openKnowledgeMenuId = "";
+        if (view === "knowledge") {
+          selectedKnowledgeId = "";
+          knowledgeFileSearchInput.value = "";
+          knowledgeCurrentPage = 1;
+          setKnowledgeFeedback("");
+          setKnowledgeError("");
+          knowledgeDetailScreen.classList.remove("is-active");
+          knowledgeOverviewScreen.classList.add("is-active");
+          renderKnowledgeCards();
+        }
+      }
+
+      function closeKnowledgeCreateModal() {
+        knowledgeModal.hidden = true;
+        document.body.classList.remove("modal-open");
+        resetKnowledgeModalState();
+      }
+
+      function closeAllKnowledgeCardMenus() {
+        if (!openKnowledgeMenuId) {
+          return;
+        }
+        openKnowledgeMenuId = "";
+        renderKnowledgeCards();
+      }
+
+      function toggleKnowledgeCardMenu(id) {
+        openKnowledgeMenuId = openKnowledgeMenuId === id ? "" : id;
+        renderKnowledgeCards();
+      }
+
+      function updateKnowledgeBaseRecord(id, updater) {
+        const knowledgeBases = getKnowledgeBases();
+        const nextRecords = knowledgeBases.map((item) => {
+          if (item.id !== id) {
+            return item;
+          }
+          const nextValue = updater(item);
+          return {
+            ...item,
+            ...nextValue
+          };
+        });
+        saveKnowledgeBases(nextRecords);
+      }
+
+      function deleteKnowledgeBase(id) {
+        const target = getKnowledgeBaseById(id);
+        if (!target) {
+          return;
+        }
+        if (!window.confirm(`确认删除知识库“${target.name}”吗？删除后其中的文件也会一并移除。`)) {
+          return;
+        }
+        const nextRecords = getKnowledgeBases().filter((item) => item.id !== id);
+        saveKnowledgeBases(nextRecords);
+        openKnowledgeMenuId = "";
+        if (selectedKnowledgeId === id) {
+          selectedKnowledgeId = "";
+          knowledgeFileSearchInput.value = "";
+          knowledgeCurrentPage = 1;
+          knowledgeDetailScreen.classList.remove("is-active");
+          knowledgeOverviewScreen.classList.add("is-active");
+        }
+        renderKnowledgeCards();
+        renderKnowledgeDetail();
+      }
+
+      function validateKnowledgeUploadFile(file) {
+        if (!file) {
+          return { valid: false, message: "未检测到可上传文件。" };
+        }
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (!KNOWLEDGE_ALLOWED_EXTENSIONS.includes(extension)) {
+          return { valid: false, message: `文件“${file.name}”格式不支持，请上传 txt、doc、docx、pdf、xls 或 xlsx 文件。` };
+        }
+        if (file.size > KNOWLEDGE_MAX_FILE_SIZE) {
+          return { valid: false, message: `文件“${file.name}”大小不能超过 15MB。` };
+        }
+        return { valid: true, extension };
+      }
+
+      function readKnowledgeAttachmentData(file) {
+        return new Promise((resolve) => {
+          const extension = file.name.split(".").pop().toLowerCase();
+          const attachment = {
+            name: file.name,
+            size: file.size,
+            type: file.type || extension,
+            extension,
+            textContent: "",
+            parseStatus: "已上传"
+          };
+
+          const finalize = (text, status) => {
+            attachment.textContent = String(text || "").slice(0, 12000);
+            attachment.parseStatus = status;
+            resolve(attachment);
+          };
+
+          const reader = new FileReader();
+
+          if (extension === "txt") {
+            reader.onload = () => finalize(reader.result, "已解析文本");
+            reader.onerror = () => finalize("", "解析失败，仅保留文件元信息");
+            reader.readAsText(file, "utf-8");
+            return;
+          }
+
+          if (extension === "docx" && window.mammoth) {
+            reader.onload = async () => {
+              try {
+                const result = await window.mammoth.extractRawText({ arrayBuffer: reader.result });
+                finalize(result.value, "已解析 docx");
+              } catch (error) {
+                finalize("", "docx 解析失败，仅保留文件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "docx 读取失败，仅保留文件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          if (extension === "pdf" && window.pdfjsLib) {
+            reader.onload = async () => {
+              try {
+                const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(reader.result) }).promise;
+                const pages = [];
+                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                  const page = await pdf.getPage(pageNumber);
+                  const textContent = await page.getTextContent();
+                  const pageText = textContent.items.map((item) => item.str).join(" ");
+                  pages.push(pageText);
+                }
+                finalize(pages.join("\n"), "已解析 PDF");
+              } catch (error) {
+                finalize("", "PDF 解析失败，仅保留文件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "PDF 读取失败，仅保留文件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          if ((extension === "xls" || extension === "xlsx") && window.XLSX) {
+            reader.onload = () => {
+              try {
+                const workbook = window.XLSX.read(reader.result, { type: "array" });
+                const sheetsText = workbook.SheetNames.map((sheetName) => {
+                  const sheet = workbook.Sheets[sheetName];
+                  const csv = window.XLSX.utils.sheet_to_csv(sheet);
+                  return `工作表：${sheetName}\n${csv}`;
+                }).join("\n\n");
+                finalize(sheetsText, "已解析表格");
+              } catch (error) {
+                finalize("", "表格解析失败，仅保留文件元信息");
+              }
+            };
+            reader.onerror = () => finalize("", "表格读取失败，仅保留文件元信息");
+            reader.readAsArrayBuffer(file);
+            return;
+          }
+
+          finalize("", extension === "doc" ? "已上传 doc，仅保留文件元信息" : "已上传，仅保留文件元信息");
+        });
+      }
+
+      function buildKnowledgeFileRecord(file, parsed, knowledgeBase) {
+        const textLength = String(parsed.textContent || "").trim().length;
+        return {
+          id: `file-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          name: file.name,
+          chunking: knowledgeBase.chunking || "通用",
+          chars: formatKnowledgeCharCount(textLength),
+          recalls: 0,
+          uploadedAt: formatDate(new Date().toISOString()),
+          status: "已启用",
+          size: file.size,
+          extension: parsed.extension,
+          type: parsed.type,
+          parseStatus: parsed.parseStatus,
+          textContent: parsed.textContent
+        };
+      }
+
+      async function appendFilesToKnowledgeBase(knowledgeId, fileRecords) {
+        const knowledgeBase = getKnowledgeBaseById(knowledgeId);
+        if (!knowledgeBase) {
+          throw new Error("当前知识库不存在，无法添加文件。");
+        }
+        const nextFiles = [...(knowledgeBase.files || []), ...fileRecords];
+        updateKnowledgeBaseRecord(knowledgeId, () => ({
+          files: nextFiles,
+          fileCount: nextFiles.length,
+          updatedAt: new Date().toISOString()
+        }));
+      }
+
+      async function handleKnowledgeFileSelection(fileList) {
+        const knowledgeBase = getActiveKnowledgeBase();
+        if (!knowledgeBase) {
+          setKnowledgeError("请先选择一个知识库。");
+          return;
+        }
+        const files = Array.from(fileList || []);
+        if (!files.length) {
+          return;
+        }
+
+        setKnowledgeFeedback("");
+        setKnowledgeError("");
+        const parsedRecords = [];
+        const errors = [];
+
+        for (const file of files) {
+          const validation = validateKnowledgeUploadFile(file);
+          if (!validation.valid) {
+            errors.push(validation.message);
+            continue;
+          }
+          const parsed = await readKnowledgeAttachmentData(file);
+          parsedRecords.push(buildKnowledgeFileRecord(file, parsed, knowledgeBase));
+        }
+
+        if (parsedRecords.length) {
+          try {
+            await appendFilesToKnowledgeBase(knowledgeBase.id, parsedRecords);
+            knowledgeCurrentPage = 1;
+            renderKnowledgeCards();
+            renderKnowledgeDetail();
+            setKnowledgeFeedback(`已添加 ${parsedRecords.length} 个文件到“${knowledgeBase.name}”。`);
+          } catch (error) {
+            console.error("知识库文件保存失败。", error);
+            setKnowledgeError("知识库文件过多，浏览器本地存储空间不足，请删除部分文件后重试。");
+            return;
+          }
+        }
+
+        if (errors.length) {
+          setKnowledgeError(errors.join(" "));
+        }
+      }
+
+      function renderHistory() {
+        const records = window.ReportTaskStore.getRecords().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        reportHistoryList.innerHTML = "";
+        reportHistoryEmpty.hidden = records.length > 0;
+        const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
+        currentPage = Math.min(currentPage, totalPages);
+        const startIndex = (currentPage - 1) * PAGE_SIZE;
+        const pageRecords = records.slice(startIndex, startIndex + PAGE_SIZE);
+        reportHistoryPagination.hidden = records.length <= PAGE_SIZE;
+        reportPageText.textContent = `第 ${currentPage} / ${totalPages} 页`;
+        reportPrevPage.disabled = currentPage === 1;
+        reportNextPage.disabled = currentPage === totalPages;
+
+        pageRecords.forEach((record) => {
+          const row = document.createElement("article");
+          row.className = "report-history-row";
+          row.innerHTML = `
+            <div class="report-history-col report-history-col-title">
+              <p class="report-history-row-label">任务名称</p>
+              <button class="report-history-link" type="button" data-view-id="${record.id}">${record.name || "项目申报方案"}</button>
+            </div>
+            <div class="report-history-col report-history-col-summary">
+              <p>${record.draft?.requirement ? record.draft.requirement.slice(0, 110) : "尚未填写方案需求。"}${record.draft?.requirement && record.draft.requirement.length > 110 ? "..." : ""}</p>
+            </div>
+            <div class="report-history-col">
+              <p class="report-history-row-label">最近更新</p>
+              <strong>${formatDate(record.updatedAt)}</strong>
+            </div>
+            <div class="report-history-col">
+              <p class="report-history-row-label">状态</p>
+              <span class="outline-status-pill" data-state="${getStatusState(record)}">${record.status || getStageText(record)}</span>
+            </div>
+            <div class="report-history-col report-history-col-actions">
+              <p class="report-history-row-label">操作</p>
+              <div class="report-history-action-group">
+                <button class="report-history-action" type="button" data-view-id="${record.id}">查看</button>
+                <button class="report-history-action report-history-action-danger" type="button" data-delete-id="${record.id}">删除</button>
+              </div>
+            </div>
+          `;
+          reportHistoryList.appendChild(row);
+        });
+      }
+
+      reportHistoryList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-view-id]");
+        if (button) {
+          const id = button.dataset.viewId;
+          const record = window.ReportTaskStore.setCurrentRecordById(id);
+          if (!record) {
+            return;
+          }
+          window.location.href = window.ReportTaskStore.getCurrentPageHref(record);
+          return;
+        }
+
+        const deleteButton = event.target.closest("[data-delete-id]");
+        if (deleteButton) {
+          const id = deleteButton.dataset.deleteId;
+          const records = window.ReportTaskStore.getRecords().filter((item) => item.id !== id);
+          localStorage.setItem("report-agent-records", JSON.stringify(records));
+          if (window.ReportTaskStore.getCurrentId() === id) {
+            const next = records[0];
+            if (next) {
+              window.ReportTaskStore.setCurrentRecordById(next.id);
+            } else {
+              localStorage.removeItem("report-agent-current-record");
+            }
+          }
+          renderHistory();
+        }
+      });
+
+      createReportTask.addEventListener("click", () => {
+        window.ReportTaskStore.createRecord({ name: "项目申报方案" });
+        window.location.href = "./report-agent.html";
+      });
+
+      reportPrevPage.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          renderHistory();
+        }
+      });
+
+      reportNextPage.addEventListener("click", () => {
+        const total = Math.max(1, Math.ceil(window.ReportTaskStore.getRecords().length / PAGE_SIZE));
+        if (currentPage < total) {
+          currentPage += 1;
+          renderHistory();
+        }
+      });
+
+      sideNavItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          setActiveView(item.dataset.viewTarget);
+        });
+      });
+
+      knowledgeSearchInput.addEventListener("input", () => {
+        closeAllKnowledgeCardMenus();
+        renderKnowledgeCards();
+      });
+
+      knowledgeFileSearchInput.addEventListener("input", () => {
+        knowledgeCurrentPage = 1;
+        renderKnowledgeDetail();
+      });
+
+      knowledgeCardGrid.addEventListener("click", (event) => {
+        const menuTrigger = event.target.closest("[data-knowledge-menu]");
+        if (menuTrigger) {
+          event.stopPropagation();
+          toggleKnowledgeCardMenu(menuTrigger.dataset.knowledgeMenu);
+          return;
+        }
+
+        const editButton = event.target.closest("[data-knowledge-edit]");
+        if (editButton) {
+          event.stopPropagation();
+          openKnowledgeMenuId = "";
+          openKnowledgeModalDialog("edit", editButton.dataset.knowledgeEdit);
+          return;
+        }
+
+        const deleteButton = event.target.closest("[data-knowledge-delete]");
+        if (deleteButton) {
+          event.stopPropagation();
+          deleteKnowledgeBase(deleteButton.dataset.knowledgeDelete);
+          return;
+        }
+
+        const card = event.target.closest("[data-knowledge-id]");
+        if (!card) {
+          return;
+        }
+        selectedKnowledgeId = card.dataset.knowledgeId;
+        knowledgeCurrentPage = 1;
+        knowledgeOverviewScreen.classList.remove("is-active");
+        knowledgeDetailScreen.classList.add("is-active");
+        renderKnowledgeDetail();
+      });
+
+      knowledgeBackButton.addEventListener("click", () => {
+        selectedKnowledgeId = "";
+        knowledgeFileSearchInput.value = "";
+        knowledgeCurrentPage = 1;
+        setKnowledgeFeedback("");
+        setKnowledgeError("");
+        knowledgeDetailScreen.classList.remove("is-active");
+        knowledgeOverviewScreen.classList.add("is-active");
+      });
+
+      knowledgePrevPage.addEventListener("click", () => {
+        if (knowledgeCurrentPage > 1) {
+          knowledgeCurrentPage -= 1;
+          renderKnowledgeDetail();
+        }
+      });
+
+      knowledgeNextPage.addEventListener("click", () => {
+        const knowledgeBase = getActiveKnowledgeBase();
+        if (!knowledgeBase) {
+          return;
+        }
+        const keyword = knowledgeFileSearchInput.value.trim().toLowerCase();
+        const files = (knowledgeBase.files || []).filter((file) => {
+          if (!keyword) {
+            return true;
+          }
+          return file.name.toLowerCase().includes(keyword);
+        });
+        const totalPages = Math.max(1, Math.ceil(files.length / KNOWLEDGE_FILE_PAGE_SIZE));
+        if (knowledgeCurrentPage < totalPages) {
+          knowledgeCurrentPage += 1;
+          renderKnowledgeDetail();
+        }
+      });
+
+      openKnowledgeModal.addEventListener("click", () => {
+        openKnowledgeModalDialog("create");
+      });
+
+      knowledgeModal.addEventListener("click", (event) => {
+        if (event.target.closest("[data-close-knowledge-modal='true']")) {
+          closeKnowledgeCreateModal();
+        }
+      });
+
+      knowledgeForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(knowledgeForm);
+        const knowledgeBases = getKnowledgeBases();
+        const nextRecord = {
+          id: editingKnowledgeId || `kb-${Date.now()}`,
+          name: String(formData.get("name") || "").trim(),
+          description: String(formData.get("description") || "").trim(),
+          embedding: String(formData.get("embedding") || "").trim(),
+          chunking: String(formData.get("chunking") || "").trim(),
+          fileCount: 0,
+          updatedAt: new Date().toISOString(),
+          files: []
+        };
+
+        if (!nextRecord.name || !nextRecord.embedding || !nextRecord.chunking) {
+          return;
+        }
+
+        if (knowledgeModalMode === "edit" && editingKnowledgeId) {
+          const currentRecord = knowledgeBases.find((item) => item.id === editingKnowledgeId);
+          if (!currentRecord) {
+            return;
+          }
+          const nextRecords = knowledgeBases.map((item) => {
+            if (item.id !== editingKnowledgeId) {
+              return item;
+            }
+            return {
+              ...item,
+              ...nextRecord,
+              fileCount: item.fileCount || (item.files || []).length,
+              files: item.files || []
+            };
+          });
+          saveKnowledgeBases(nextRecords);
+          if (selectedKnowledgeId === editingKnowledgeId) {
+            renderKnowledgeDetail();
+          }
+        } else {
+          knowledgeBases.unshift(nextRecord);
+          saveKnowledgeBases(knowledgeBases);
+        }
+        closeKnowledgeCreateModal();
+        setActiveView("knowledge");
+      });
+
+      knowledgeAddFileButton.addEventListener("click", () => {
+        const knowledgeBase = getActiveKnowledgeBase();
+        if (!knowledgeBase) {
+          return;
+        }
+        knowledgeFileInput.click();
+      });
+
+      knowledgeFileInput.addEventListener("change", async (event) => {
+        await handleKnowledgeFileSelection(event.target.files);
+        knowledgeFileInput.value = "";
+      });
+
+      knowledgeDetailShell.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        knowledgeDetailShell.classList.add("is-dragover");
+      });
+
+      knowledgeDetailShell.addEventListener("dragleave", (event) => {
+        if (!knowledgeDetailShell.contains(event.relatedTarget)) {
+          knowledgeDetailShell.classList.remove("is-dragover");
+        }
+      });
+
+      knowledgeDetailShell.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        knowledgeDetailShell.classList.remove("is-dragover");
+        await handleKnowledgeFileSelection(event.dataTransfer.files);
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".knowledge-card-menu")) {
+          closeAllKnowledgeCardMenus();
+        }
+      });
+
+      renderHistory();
+      renderKnowledgeCards();
+    </script>
+  </body>
+</html>

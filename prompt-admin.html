@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 提示词后台管理</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="./prompt-config.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page prompt-admin-page">
+      <main class="report-flow prompt-admin-flow">
+        <section class="report-header">
+          <div class="report-header-top">
+            <div class="report-header-title">
+              <h1>提示词后台管理</h1>
+            </div>
+          </div>
+        </section>
+
+        <section class="outline-summary-card prompt-admin-summary">
+          <div>
+            <p class="outline-summary-eyebrow">Prompt Control Center</p>
+            <h2>统一管理报告生成智能体提示词</h2>
+            <p>保存后会直接写入本地配置。需求录入、大纲确认、方案智写三个环节在下一次调用模型时会自动读取最新提示词。</p>
+          </div>
+          <span class="outline-status-pill" id="promptAdminStatus">未修改</span>
+        </section>
+
+        <form class="prompt-admin-form" id="promptAdminForm">
+          <section class="prompt-admin-card">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Step 0</p>
+                <h2>需求录入 / 智能扩写</h2>
+              </div>
+              <p>负责在需求录入页基于当前输入内容做严格扩写细化，不偏离原始主题。</p>
+            </div>
+            <div class="prompt-admin-grid">
+              <label class="prompt-admin-field">
+                <span>System Prompt</span>
+                <textarea name="requirementCompleteSystem" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </label>
+              <label class="prompt-admin-field">
+                <span>User Prompt Template</span>
+                <textarea name="requirementCompleteUser" class="outline-modal-textarea prompt-admin-template" spellcheck="false"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompt-admin-card">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Step 1</p>
+                <h2>需求录入 / 一级目录生成</h2>
+              </div>
+              <p>负责先生成所有一级标题和对应思路。</p>
+            </div>
+            <div class="prompt-admin-grid">
+              <label class="prompt-admin-field">
+                <span>System Prompt</span>
+                <textarea name="outlineLevelOneSystem" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </label>
+              <label class="prompt-admin-field">
+                <span>User Prompt Template</span>
+                <textarea name="outlineLevelOneUser" class="outline-modal-textarea prompt-admin-template" spellcheck="false"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompt-admin-card">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Step 1-2</p>
+                <h2>需求录入 / 一级标题细纲扩展</h2>
+              </div>
+              <p>负责基于一级标题和思路扩展 3 到 5 级目录。</p>
+            </div>
+            <div class="prompt-admin-grid">
+              <label class="prompt-admin-field">
+                <span>System Prompt</span>
+                <textarea name="outlineDetailSystem" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </label>
+              <label class="prompt-admin-field">
+                <span>User Prompt Template</span>
+                <textarea name="outlineDetailUser" class="outline-modal-textarea prompt-admin-template" spellcheck="false"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompt-admin-card">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Step 2</p>
+                <h2>大纲确认 / 单章重新生成</h2>
+              </div>
+              <p>负责在大纲确认页按章节重新生成当前一级目录。</p>
+            </div>
+            <div class="prompt-admin-grid">
+              <label class="prompt-admin-field">
+                <span>System Prompt</span>
+                <textarea name="outlineRegenerateSystem" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </label>
+              <label class="prompt-admin-field">
+                <span>User Prompt Template</span>
+                <textarea name="outlineRegenerateUser" class="outline-modal-textarea prompt-admin-template" spellcheck="false"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompt-admin-card">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Step 3</p>
+                <h2>方案智写 / 正文逐节点生成</h2>
+              </div>
+              <p>负责最终正文内容生成，叶子节点先写，父级节点再做归纳总结。</p>
+            </div>
+            <div class="prompt-admin-grid">
+              <label class="prompt-admin-field">
+                <span>System Prompt</span>
+                <textarea name="documentNodeSystem" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </label>
+              <label class="prompt-admin-field">
+                <span>User Prompt Template</span>
+                <textarea name="documentNodeUser" class="outline-modal-textarea prompt-admin-template" spellcheck="false"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompt-admin-card prompt-admin-help">
+            <div class="prompt-admin-card-head">
+              <div>
+                <p class="prompt-admin-kicker">Variables</p>
+                <h2>可用模板变量</h2>
+              </div>
+              <p>仅在 `User Prompt Template` 中生效，保存时无需手动转义。</p>
+            </div>
+            <div class="prompt-admin-vars">
+              <code>{{requirement}}</code>
+              <code>{{planName}}</code>
+              <code>{{attachmentContext}}</code>
+              <code>{{topLevelId}}</code>
+              <code>{{topLevelTitle}}</code>
+              <code>{{thought}}</code>
+              <code>{{groupTitle}}</code>
+              <code>{{maxLevel}}</code>
+              <code>{{nodeId}}</code>
+              <code>{{nodeTitle}}</code>
+              <code>{{nodeRoleInstruction}}</code>
+              <code>{{nodeBoundaryInstruction}}</code>
+              <code>{{childSummaryLabel}}</code>
+              <code>{{childSummaries}}</code>
+            </div>
+          </section>
+
+          <div class="prompt-admin-actions">
+            <button class="report-btn report-btn-muted" type="button" id="promptReset">恢复默认</button>
+            <button class="report-btn report-btn-primary" type="submit">保存并生效</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      const promptAdminForm = document.getElementById("promptAdminForm");
+      const promptAdminStatus = document.getElementById("promptAdminStatus");
+      const promptReset = document.getElementById("promptReset");
+      const promptFields = Array.from(promptAdminForm.querySelectorAll("textarea[name]"));
+
+      function setStatus(text, state) {
+        promptAdminStatus.textContent = text;
+        promptAdminStatus.dataset.state = state || "idle";
+      }
+
+      function fillForm(config) {
+        promptFields.forEach((field) => {
+          field.value = config[field.name] || "";
+        });
+      }
+
+      function collectForm() {
+        return promptFields.reduce((result, field) => {
+          result[field.name] = field.value.trim();
+          return result;
+        }, {});
+      }
+
+      fillForm(window.ReportPromptConfig.getConfig());
+
+      promptFields.forEach((field) => {
+        field.addEventListener("input", () => {
+          setStatus("已修改未保存", "loading");
+        });
+      });
+
+      promptAdminForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const nextConfig = collectForm();
+        window.ReportPromptConfig.saveConfig(nextConfig);
+        setStatus("已保存并自动生效", "success");
+      });
+
+      promptReset.addEventListener("click", () => {
+        const defaults = window.ReportPromptConfig.resetConfig();
+        fillForm(defaults);
+        setStatus("已恢复默认提示词", "success");
+      });
+    </script>
+  </body>
+</html>

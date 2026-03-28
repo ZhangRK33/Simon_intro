@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | HR 面试助手</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page">
+      <main class="report-flow hr-interview-page">
+        <section class="report-header">
+          <div class="report-header-top">
+            <div class="report-header-title">
+              <h1>HR 面试助手</h1>
+            </div>
+          </div>
+        </section>
+
+        <section class="report-card-shell">
+          <form class="report-card hr-interview-card" id="hrInterviewForm" novalidate>
+            <div class="hr-interview-upload-grid">
+              <section class="report-section">
+                <div class="field-heading">
+                  <label for="jdFile">岗位 JD <em>*</em></label>
+                  <p>支持上传 `txt/docx/pdf`，系统会自动抽取正文作为面试问题生成依据。</p>
+                </div>
+                <div class="upload-group">
+                  <label class="dropzone hr-dropzone" for="jdFile" id="jdDropzone">
+                    <input id="jdFile" type="file" accept=".txt,.docx,.pdf" />
+                    <span class="dropzone-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 16V8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                        <path d="M8.5 11.5L12 8l3.5 3.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+                        <path d="M6 18h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                      </svg>
+                    </span>
+                    <strong>上传岗位 JD</strong>
+                    <span>拖拽到此处，或点击选择文件</span>
+                  </label>
+                  <div class="field-error" id="jdError" hidden></div>
+                  <div class="upload-list" id="jdUploadList"></div>
+                </div>
+                <div class="field-wrap">
+                  <label for="jdPreview">JD 提取内容预览</label>
+                  <textarea class="lux-textarea hr-preview-textarea" id="jdPreview" placeholder="上传后自动展示抽取内容" readonly rows="9"></textarea>
+                </div>
+              </section>
+
+              <section class="report-section">
+                <div class="field-heading">
+                  <label for="resumeFile">面试人简历 <em>*</em></label>
+                  <p>支持上传 `txt/docx/pdf`，系统会抽取候选人经历和项目内容。</p>
+                </div>
+                <div class="upload-group">
+                  <label class="dropzone hr-dropzone" for="resumeFile" id="resumeDropzone">
+                    <input id="resumeFile" type="file" accept=".txt,.docx,.pdf" />
+                    <span class="dropzone-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 16V8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                        <path d="M8.5 11.5L12 8l3.5 3.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+                        <path d="M6 18h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+                      </svg>
+                    </span>
+                    <strong>上传候选人简历</strong>
+                    <span>拖拽到此处，或点击选择文件</span>
+                  </label>
+                  <div class="field-error" id="resumeError" hidden></div>
+                  <div class="upload-list" id="resumeUploadList"></div>
+                </div>
+                <div class="field-wrap">
+                  <label for="resumePreview">简历提取内容预览</label>
+                  <textarea class="lux-textarea hr-preview-textarea" id="resumePreview" placeholder="上传后自动展示抽取内容" readonly rows="9"></textarea>
+                </div>
+              </section>
+            </div>
+
+            <div class="report-actions">
+              <a class="report-btn report-btn-muted" href="./agent.html">返回智能体</a>
+              <button class="report-btn report-btn-primary" type="submit">生成面试问题大纲</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="report-card-shell hr-outline-shell" id="hrOutlineShell" hidden>
+          <article class="report-card hr-outline-card">
+            <div class="hr-outline-header">
+              <div>
+                <p class="outline-summary-eyebrow">Interview Outline</p>
+                <h2>面试问题大纲</h2>
+              </div>
+            </div>
+            <div class="hr-outline-summary" id="hrOutlineSummary"></div>
+            <div class="hr-outline-grid" id="hrOutlineGrid"></div>
+          </article>
+        </section>
+
+        <div class="generation-overlay" id="hrGenerationOverlay" hidden>
+          <div class="generation-overlay-panel">
+            <div class="generation-orbit">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p class="generation-kicker">AI Interview Engine</p>
+            <h2>面试问题正在生成中</h2>
+            <p id="hrGenerationText">系统正在解析 JD 与简历，组织维度并生成结构化问题大纲，请稍候片刻。</p>
+            <div class="generation-progress-track">
+              <div class="generation-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const BASE_URL = "https://api.siliconflow.cn/v1";
+      const API_KEY = "sk-vhscuxbnmtrfabpusnssbbjfxszaslgpcrxegdnfpzlmvelv";
+      const MODEL = "Qwen/Qwen3-8B";
+      const API_URL = `${BASE_URL}/chat/completions`;
+      const ALLOWED_EXTENSIONS = ["txt", "docx", "pdf"];
+      const MAX_FILE_SIZE = 15 * 1024 * 1024;
+
+      const form = document.getElementById("hrInterviewForm");
+      const jdFileInput = document.getElementById("jdFile");
+      const resumeFileInput = document.getElementById("resumeFile");
+      const jdError = document.getElementById("jdError");
+      const resumeError = document.getElementById("resumeError");
+      const jdUploadList = document.getElementById("jdUploadList");
+      const resumeUploadList = document.getElementById("resumeUploadList");
+      const jdPreview = document.getElementById("jdPreview");
+      const resumePreview = document.getElementById("resumePreview");
+      const hrOutlineShell = document.getElementById("hrOutlineShell");
+      const hrOutlineSummary = document.getElementById("hrOutlineSummary");
+      const hrOutlineGrid = document.getElementById("hrOutlineGrid");
+      const hrGenerationOverlay = document.getElementById("hrGenerationOverlay");
+
+      let jdState = null;
+      let resumeState = null;
+
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js";
+      }
+
+      function normalizeText(value) {
+        return String(value || "")
+          .replace(/\u3000/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function setFieldError(input, errorElement, message) {
+        const fieldWrap = input.closest(".upload-group");
+        const hasMessage = Boolean(message);
+        fieldWrap?.classList.toggle("has-error", hasMessage);
+        errorElement.hidden = !hasMessage;
+        errorElement.textContent = message || "";
+      }
+
+      function formatSize(size) {
+        if (size < 1024 * 1024) {
+          return `${(size / 1024).toFixed(1)} KB`;
+        }
+        return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      function renderFileCard(container, state, removeHandler) {
+        container.innerHTML = "";
+        if (!state?.file) {
+          return;
+        }
+        const card = document.createElement("article");
+        card.className = "file-card";
+        card.innerHTML = `
+          <div class="file-card-meta">
+            <span class="file-badge">文件</span>
+            <div>
+              <strong>${state.file.name}</strong>
+              <p>${formatSize(state.file.size)} · ${state.parseStatus || "已上传"}</p>
+            </div>
+          </div>
+          <button type="button" class="file-remove">删除</button>
+        `;
+        card.querySelector(".file-remove").addEventListener("click", removeHandler);
+        container.appendChild(card);
+      }
+
+      function validateFile(file, input, errorElement) {
+        if (!file) {
+          setFieldError(input, errorElement, "");
+          return true;
+        }
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+          setFieldError(input, errorElement, "仅支持上传 txt、docx 或 pdf 文件。");
+          return false;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          setFieldError(input, errorElement, "单文件不能超过 15MB。");
+          return false;
+        }
+        setFieldError(input, errorElement, "");
+        return true;
+      }
+
+      async function extractTextFromFile(file) {
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (extension === "txt") {
+          return normalizeText(await file.text());
+        }
+        const buffer = await file.arrayBuffer();
+        if (extension === "docx") {
+          const result = await window.mammoth.extractRawText({ arrayBuffer: buffer });
+          return normalizeText(result.value);
+        }
+        if (extension === "pdf") {
+          const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+          const pages = [];
+          for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            const page = await pdf.getPage(pageNumber);
+            const content = await page.getTextContent();
+            pages.push(content.items.map((item) => item.str).join(" "));
+          }
+          return normalizeText(pages.join("\n"));
+        }
+        return "";
+      }
+
+      async function handleFileChange(kind) {
+        const isJd = kind === "jd";
+        const input = isJd ? jdFileInput : resumeFileInput;
+        const errorElement = isJd ? jdError : resumeError;
+        const preview = isJd ? jdPreview : resumePreview;
+        const file = input.files?.[0];
+        if (!validateFile(file, input, errorElement)) {
+          input.value = "";
+          return;
+        }
+        if (!file) {
+          return;
+        }
+        try {
+          const textContent = await extractTextFromFile(file);
+          const state = {
+            file,
+            textContent,
+            parseStatus: textContent ? "已解析正文" : "未提取到可用正文"
+          };
+          if (isJd) {
+            jdState = state;
+            renderFileCard(jdUploadList, jdState, () => {
+              jdState = null;
+              jdFileInput.value = "";
+              jdPreview.value = "";
+              jdUploadList.innerHTML = "";
+            });
+          } else {
+            resumeState = state;
+            renderFileCard(resumeUploadList, resumeState, () => {
+              resumeState = null;
+              resumeFileInput.value = "";
+              resumePreview.value = "";
+              resumeUploadList.innerHTML = "";
+            });
+          }
+          preview.value = state.textContent.slice(0, 3000);
+        } catch (error) {
+          setFieldError(input, errorElement, "文件解析失败，请更换文件后重试。");
+        }
+      }
+
+      async function generateOutline() {
+        const systemPrompt = "你是一名资深 HR 面试官和招聘顾问。必须严格输出 JSON。";
+        const userPrompt = `
+请基于岗位 JD 和候选人简历，生成结构化的面试问题大纲。
+
+岗位 JD：
+${jdState.textContent.slice(0, 12000)}
+
+候选人简历：
+${resumeState.textContent.slice(0, 12000)}
+
+输出要求：
+1. 仅输出 JSON。
+2. JSON 结构必须为：
+{
+  "summary":"岗位与候选人的匹配判断摘要",
+  "sections":[
+    {
+      "title":"问题模块名称",
+      "goal":"该模块考察目标",
+      "questions":["问题1","问题2","问题3"]
+    }
+  ]
+}
+3. sections 至少输出 5 个模块。
+4. 每个模块至少输出 3 个面试问题。
+5. 问题必须结合 JD 要求和候选人履历，避免空泛。
+        `.trim();
+
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            temperature: 0.25,
+            max_tokens: 2600,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ]
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error?.message || "面试问题生成失败。");
+        }
+        const content = payload.choices?.[0]?.message?.content?.trim();
+        if (!content) {
+          throw new Error("模型未返回有效内容。");
+        }
+        return JSON.parse(content.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim());
+      }
+
+      function renderOutline(data) {
+        hrOutlineSummary.innerHTML = `<p>${data.summary || ""}</p>`;
+        hrOutlineGrid.innerHTML = (data.sections || [])
+          .map(
+            (section, index) => `
+              <article class="hr-outline-item">
+                <header>
+                  <p class="outline-summary-eyebrow">0${index + 1}</p>
+                  <h3>${section.title || ""}</h3>
+                </header>
+                <p class="hr-outline-goal">${section.goal || ""}</p>
+                <ol>
+                  ${(section.questions || []).map((question) => `<li>${question}</li>`).join("")}
+                </ol>
+              </article>
+            `
+          )
+          .join("");
+        hrOutlineShell.hidden = false;
+      }
+
+      jdFileInput.addEventListener("change", () => handleFileChange("jd"));
+      resumeFileInput.addEventListener("change", () => handleFileChange("resume"));
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        let valid = true;
+        if (!jdState?.textContent) {
+          setFieldError(jdFileInput, jdError, "请先上传并解析岗位 JD。");
+          valid = false;
+        }
+        if (!resumeState?.textContent) {
+          setFieldError(resumeFileInput, resumeError, "请先上传并解析候选人简历。");
+          valid = false;
+        }
+        if (!valid) {
+          return;
+        }
+
+        hrGenerationOverlay.hidden = false;
+        try {
+          const result = await generateOutline();
+          renderOutline(result);
+        } catch (error) {
+          alert(error.message || "生成失败，请稍后重试。");
+        } finally {
+          hrGenerationOverlay.hidden = true;
+        }
+      });
+    </script>
+  </body>
+</html>

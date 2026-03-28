@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simon. | 大纲确认</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=Noto+Serif+SC:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="./prompt-config.js"></script>
+    <script src="./report-task-store.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell report-page">
+      <main class="report-flow report-flow-outline">
+        <section class="report-header">
+          <div class="report-header-top">
+            <div class="report-header-title">
+              <h1>报告生成智能体</h1>
+            </div>
+          </div>
+
+          <ol class="flow-stepper" aria-label="方案生成步骤">
+            <li class="is-complete">
+              <span class="step-index"><span class="step-index-label">01</span></span>
+              <div>
+                <strong>需求录入</strong>
+                <span>明确方案需求</span>
+              </div>
+            </li>
+            <li class="is-active">
+              <span class="step-index"><span class="step-index-label">02</span></span>
+              <div>
+                <strong>大纲确认</strong>
+                <span>当前步骤</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-index"><span class="step-index-label">03</span></span>
+              <div>
+                <strong>方案智写</strong>
+                <span>生成完整内容</span>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="outline-summary-card">
+          <div>
+            <p class="outline-summary-eyebrow">生成结果</p>
+            <h2 id="outlineSummaryTitle">项目申报方案</h2>
+            <p id="outlineSummaryText">已按一级目录完成切分展示，可直接在下方逐项调整结构与层级内容。</p>
+          </div>
+          <span class="outline-status-pill" id="outlineStatus">已生成</span>
+        </section>
+
+        <section class="outline-grid" id="outlineGrid"></section>
+
+        <div class="outline-empty-state" id="outlineEmptyState" hidden>
+          <h2>暂未生成大纲</h2>
+          <p>没有检测到可用的大纲结果。你可以返回上一步重新生成，或点击下方按钮再次尝试。</p>
+          <div class="outline-empty-actions">
+            <a class="report-btn report-btn-muted" href="./report-agent.html">返回需求录入</a>
+            <button class="report-btn report-btn-primary" type="button" id="retryOutline">重新生成大纲</button>
+          </div>
+        </div>
+
+        <div class="outline-modal" id="outlineModal" hidden>
+          <div class="outline-modal-backdrop" data-close-modal="true"></div>
+          <section class="outline-modal-panel" role="dialog" aria-modal="true" aria-labelledby="outlineModalTitle">
+            <header class="outline-modal-header">
+              <div>
+                <p class="outline-modal-eyebrow">重新生成配置</p>
+                <div class="outline-modal-title-block">
+                  <p class="outline-modal-label">章节</p>
+                  <h2 id="outlineModalTitle">章节名称</h2>
+                </div>
+              </div>
+            </header>
+            <div class="outline-modal-body">
+              <div class="outline-modal-block">
+                <h3>思路内容</h3>
+                <textarea id="outlineModalThought" class="outline-modal-textarea" spellcheck="false"></textarea>
+              </div>
+              <div class="outline-modal-block">
+                <h3>层级设置</h3>
+                <div class="outline-modal-select-wrap">
+                  <select id="outlineModalLevel" class="outline-modal-select" aria-label="层级设置">
+                    <option value="1">1 级标题</option>
+                    <option value="2">2 级标题</option>
+                    <option value="3">3 级标题</option>
+                    <option value="4">4 级标题</option>
+                    <option value="5">5 级标题</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="outline-modal-actions">
+              <button type="button" class="report-btn report-btn-muted" id="outlineModalCancel">取消</button>
+              <button type="button" class="report-btn report-btn-primary" id="outlineModalSubmit">重新生成</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="outline-modal" id="knowledgeConfigModal" hidden>
+          <div class="outline-modal-backdrop" data-close-knowledge-config="true"></div>
+          <section class="outline-modal-panel outline-knowledge-modal-panel" role="dialog" aria-modal="true" aria-labelledby="knowledgeConfigTitle">
+            <header class="outline-modal-header">
+              <div>
+                <p class="outline-modal-eyebrow">知识库配置</p>
+                <div class="outline-modal-title-block">
+                  <p class="outline-modal-label">章节</p>
+                  <h2 id="knowledgeConfigTitle">章节名称</h2>
+                </div>
+              </div>
+            </header>
+            <div class="outline-modal-body">
+              <div class="outline-modal-block">
+                <h3>选择知识库</h3>
+                <div class="outline-knowledge-list" id="knowledgeConfigList"></div>
+              </div>
+            </div>
+            <div class="outline-modal-actions">
+              <button type="button" class="report-btn report-btn-muted" id="knowledgeConfigCancel">取消</button>
+              <button type="button" class="report-btn report-btn-primary" id="knowledgeConfigSubmit">保存</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="outline-page-actions">
+          <a class="report-btn report-btn-muted report-btn-wide" href="./report-agent.html">上一步</a>
+          <a class="report-btn report-btn-primary report-btn-wide" href="./report-write.html">报告生成</a>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const DRAFT_KEY = "report-agent-draft";
+      const OUTLINE_KEY = "report-agent-outline";
+      const BASE_URL = "https://api.siliconflow.cn/v1";
+      const API_KEY = "sk-vhscuxbnmtrfabpusnssbbjfxszaslgpcrxegdnfpzlmvelv";
+      const MODEL = "Qwen/Qwen3-8B";
+      const API_URL = `${BASE_URL}/chat/completions`;
+      const outlineGrid = document.getElementById("outlineGrid");
+      const outlineEmptyState = document.getElementById("outlineEmptyState");
+      const retryOutlineButton = document.getElementById("retryOutline");
+      const outlineStatus = document.getElementById("outlineStatus");
+      const outlineSummaryTitle = document.getElementById("outlineSummaryTitle");
+      const outlineSummaryText = document.getElementById("outlineSummaryText");
+      const modal = document.getElementById("outlineModal");
+      const modalTitle = document.getElementById("outlineModalTitle");
+      const modalThought = document.getElementById("outlineModalThought");
+      const modalLevel = document.getElementById("outlineModalLevel");
+      const modalCancel = document.getElementById("outlineModalCancel");
+      const modalSubmit = document.getElementById("outlineModalSubmit");
+      const knowledgeConfigModal = document.getElementById("knowledgeConfigModal");
+      const knowledgeConfigTitle = document.getElementById("knowledgeConfigTitle");
+      const knowledgeConfigList = document.getElementById("knowledgeConfigList");
+      const knowledgeConfigCancel = document.getElementById("knowledgeConfigCancel");
+      const knowledgeConfigSubmit = document.getElementById("knowledgeConfigSubmit");
+      const KNOWLEDGE_KEY = "report-agent-knowledge-bases";
+
+      let currentDraft = null;
+      let outlineGroups = [];
+      let currentRegenerateTopLevel = null;
+      let currentKnowledgeConfigTopLevel = null;
+
+      function hashText(text) {
+        let hash = 0;
+        for (let index = 0; index < text.length; index += 1) {
+          hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+        }
+        return String(hash);
+      }
+
+      function buildDraftSignature(draft) {
+        return hashText(`${draft.name || ""}::${draft.requirement || ""}`);
+      }
+
+      function setStatus(text, state) {
+        outlineStatus.textContent = text;
+        outlineStatus.dataset.state = state || "idle";
+      }
+
+      function escapeHtml(value) {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function normalizeLine(line) {
+        return line.replace(/\u3000/g, " ").trim();
+      }
+
+      function stripOutlineNumbering(value) {
+        return normalizeLine(String(value || "").replace(/^\d+(?:\.\d+)*[\.．、\s]*/, ""));
+      }
+
+      function getLatestPromptConfig() {
+        return window.ReportPromptConfig.getConfig();
+      }
+
+      function sanitizeOutlineResponse(rawText) {
+        return rawText
+          .replace(/<think[\s\S]*?<\/think>/gi, "")
+          .replace(/^```(?:json|text|markdown)?\s*/gi, "")
+          .replace(/\s*```$/gi, "")
+          .split(/\r?\n/)
+          .map(normalizeLine)
+          .filter((line) => {
+            if (!line) {
+              return false;
+            }
+            if (/^```/.test(line)) {
+              return false;
+            }
+            if (/^(以下是|以下为|下面是|这是|说明：|注：|备注：)/.test(line)) {
+              return false;
+            }
+            return true;
+          })
+          .join("\n")
+          .trim();
+      }
+
+      function parseOutlineText(rawText) {
+        const lines = rawText
+          .split(/\r?\n/)
+          .map(normalizeLine)
+          .filter(Boolean);
+        const groups = [];
+        const groupMap = new Map();
+        const pattern = /^(\d+(?:\.\d+){0,4})[\.．、\s]*(.+)$/;
+
+        lines.forEach((line) => {
+          const match = line.match(pattern);
+          if (!match) {
+            return;
+          }
+
+          const numbering = match[1];
+          const title = match[2].trim();
+          const normalizedLine = `${numbering} ${title}`;
+          const topLevel = numbering.split(".")[0];
+          const level = numbering.split(".").length;
+
+          if (level === 1) {
+            const group = {
+              topLevel,
+              title: normalizedLine,
+              lines: [normalizedLine]
+            };
+            groups.push(group);
+            groupMap.set(topLevel, group);
+            return;
+          }
+
+          const parentGroup = groupMap.get(topLevel);
+          if (parentGroup) {
+            parentGroup.lines.push(normalizedLine);
+          }
+        });
+
+        return groups;
+      }
+
+      function parseOutlineTextForTopLevel(rawText, expectedTopLevelId, expectedGroupTitle) {
+        const sanitized = sanitizeOutlineResponse(rawText);
+        const lines = sanitized
+          .split(/\r?\n/)
+          .map(normalizeLine)
+          .filter(Boolean);
+        const pattern = /^(\d+(?:\.\d+){0,4})[\.．、\s]*(.+)$/;
+        const scoped = [];
+
+        lines.forEach((line) => {
+          const match = line.match(pattern);
+          if (!match) {
+            return;
+          }
+          const numbering = match[1];
+          const topLevel = numbering.split(".")[0];
+          if (topLevel !== expectedTopLevelId) {
+            return;
+          }
+          scoped.push(`${numbering} ${match[2].trim()}`);
+        });
+
+        if (!scoped.length) {
+          return [];
+        }
+
+        const hasTopLevel = scoped.some((line) => line.split(" ")[0] === expectedTopLevelId);
+        if (!hasTopLevel) {
+          scoped.unshift(`${expectedTopLevelId} ${expectedGroupTitle}`);
+        }
+
+        return parseOutlineText(scoped.join("\n"));
+      }
+
+      function validateOutlineLevels(group, maxLevel) {
+        const allowedLevel = Number(maxLevel);
+        if (!group || !Array.isArray(group.lines) || !group.lines.length) {
+          throw new Error("模型返回内容不是有效目录结构。");
+        }
+
+        const levelPattern = /^(\d+(?:\.\d+){0,4})\s+/;
+        let hasChildLine = false;
+
+        group.lines.forEach((line) => {
+          const match = line.match(levelPattern);
+          if (!match) {
+            throw new Error("模型返回内容不是有效目录结构。");
+          }
+          const level = match[1].split(".").length;
+          if (level > allowedLevel) {
+            throw new Error(`模型返回目录超过 ${allowedLevel} 级，请收紧重新生成提示词。`);
+          }
+          if (level > 1) {
+            hasChildLine = true;
+          }
+        });
+
+        if (!hasChildLine && allowedLevel > 1) {
+          throw new Error("未解析出目标一级目录的有效子目录，请检查提示词是否要求输出子级标题。");
+        }
+      }
+
+      function serializeGroupLines(group) {
+        return Array.isArray(group?.lines) ? group.lines.join("\n") : "";
+      }
+
+      function buildAttachmentContext(attachment) {
+        if (!attachment) {
+          return "无附件。";
+        }
+
+        const summary = [
+          `附件名称：${attachment.name}`,
+          `附件格式：${attachment.extension || attachment.type || "未知"}`,
+          `附件大小：${attachment.size || 0} 字节`
+        ];
+
+        if (attachment.textContent) {
+          summary.push("附件文本内容：");
+          summary.push(attachment.textContent);
+        } else {
+          summary.push("附件内容说明：当前原型仅直接读取 txt 文本附件，其余格式暂以文件元信息参与生成。");
+        }
+
+        return summary.join("\n");
+      }
+
+      function renderPrompt(template, vars) {
+        return window.ReportPromptConfig.render(template, vars);
+      }
+
+      async function requestOutlineJson(prompt, systemPrompt, maxTokens = 4096) {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            temperature: 0.2,
+            max_tokens: maxTokens,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: prompt }
+            ]
+          })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error?.message || "大纲生成失败。");
+        }
+
+        const content = payload.choices?.[0]?.message?.content?.trim();
+        if (!content) {
+          throw new Error("模型没有返回可用内容。");
+        }
+
+        return content;
+      }
+
+      async function requestLevelOneBlueprint() {
+        const promptConfig = getLatestPromptConfig();
+        const prompt = renderPrompt(promptConfig.outlineLevelOneUser, {
+          planName: currentDraft.name || "项目申报方案",
+          requirement: currentDraft.requirement,
+          attachmentContext: buildAttachmentContext(currentDraft.attachment)
+        });
+
+        const raw = await requestOutlineJson(
+          prompt,
+          promptConfig.outlineLevelOneSystem,
+          2048
+        );
+        const sanitized = raw.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+        const parsed = JSON.parse(sanitized);
+        if (!Array.isArray(parsed) || !parsed.length) {
+          throw new Error("一级大纲结果为空。");
+        }
+        return parsed
+          .map((item, index) => ({
+            id: String(item.id || index + 1),
+            title: normalizeLine(String(item.title || "")),
+            thought: normalizeLine(String(item.thought || ""))
+          }))
+          .filter((item) => item.title);
+      }
+
+      async function requestDetailedOutlineForTopLevel(item) {
+        const promptConfig = getLatestPromptConfig();
+        const prompt = renderPrompt(promptConfig.outlineDetailUser, {
+          topLevelId: item.id,
+          topLevelTitle: item.title,
+          planName: currentDraft.name || "项目申报方案",
+          requirement: currentDraft.requirement,
+          attachmentContext: buildAttachmentContext(currentDraft.attachment),
+          thought: item.thought || "无"
+        });
+
+        return requestOutlineJson(
+          prompt,
+          promptConfig.outlineDetailSystem,
+          4096
+        );
+      }
+
+      function saveOutline() {
+        if (!currentDraft) {
+          return;
+        }
+
+        const payload = {
+          signature: buildDraftSignature(currentDraft),
+          groups: outlineGroups
+        };
+        window.ReportTaskStore.saveOutline(payload, { resetDoc: true });
+      }
+
+      function getKnowledgeBases() {
+        try {
+          const raw = localStorage.getItem(KNOWLEDGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function renderOutline() {
+        outlineGrid.innerHTML = "";
+        const hasOutline = outlineGroups.length > 0;
+        outlineEmptyState.hidden = hasOutline;
+
+        if (!hasOutline) {
+          return;
+        }
+
+        outlineGroups.forEach((group, groupIndex) => {
+          const card = document.createElement("article");
+          card.className = "outline-card outline-card-detail";
+          card.dataset.topLevel = group.topLevel;
+
+          const header = document.createElement("header");
+          header.className = "outline-card-header";
+
+          const title = document.createElement("h2");
+          title.textContent = group.title;
+
+          const actions = document.createElement("div");
+          actions.className = "outline-chip-row";
+          const knowledgeConfigText = group.knowledgeBaseIds?.length ? `知识库配置(${group.knowledgeBaseIds.length})` : "知识库配置";
+          actions.innerHTML = `
+            <button type="button" class="outline-chip-btn" data-action="knowledge-config">${knowledgeConfigText}</button>
+            <button type="button" class="outline-chip-btn" data-action="regenerate">重新生成</button>
+            <button type="button" class="outline-chip-btn" data-action="expand">展开</button>
+            <button type="button" class="outline-chip-btn" data-action="delete">删除</button>
+          `;
+
+          header.append(title, actions);
+
+          const content = document.createElement("div");
+          content.className = "outline-scroll outline-list";
+          content.contentEditable = "true";
+          content.spellcheck = false;
+          content.innerHTML = group.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+
+          content.addEventListener("input", () => {
+            const newLines = content.innerText.split(/\r?\n/).map(normalizeLine).filter(Boolean);
+            outlineGroups[groupIndex].lines = newLines;
+            if (newLines[0]) {
+              outlineGroups[groupIndex].title = newLines[0];
+              title.textContent = newLines[0];
+            }
+            saveOutline();
+          });
+
+          actions.addEventListener("click", (event) => {
+            const action = event.target.dataset.action;
+            if (!action) {
+              return;
+            }
+
+            if (action === "expand") {
+              card.classList.toggle("is-expanded");
+              event.target.textContent = card.classList.contains("is-expanded") ? "收起" : "展开";
+              return;
+            }
+
+            if (action === "knowledge-config") {
+              currentKnowledgeConfigTopLevel = group.topLevel;
+              openKnowledgeConfigModal(group);
+              return;
+            }
+
+            if (action === "delete") {
+              outlineGroups = outlineGroups.filter((_, index) => index !== groupIndex);
+              saveOutline();
+              renderOutline();
+              return;
+            }
+
+            if (action === "regenerate") {
+              currentRegenerateTopLevel = group.topLevel;
+              modalTitle.textContent = group.title;
+              modalThought.value = group.thought || group.lines.join("\n");
+              modalLevel.value = "3";
+              modal.hidden = false;
+            }
+          });
+
+          card.append(header, content);
+          outlineGrid.appendChild(card);
+        });
+      }
+
+      function openKnowledgeConfigModal(group) {
+        const knowledgeBases = getKnowledgeBases();
+        knowledgeConfigTitle.textContent = group.title;
+        if (!knowledgeBases.length) {
+          knowledgeConfigList.innerHTML = '<p class="outline-knowledge-empty">暂无可选知识库，请先前往知识库页面创建。</p>';
+          knowledgeConfigModal.hidden = false;
+          return;
+        }
+
+        const selected = new Set(group.knowledgeBaseIds || []);
+        knowledgeConfigList.innerHTML = knowledgeBases
+          .map((item) => {
+            const checked = selected.has(item.id) ? "checked" : "";
+            const description = escapeHtml(item.description || "暂无知识库描述。");
+            return `
+              <label class="outline-knowledge-item">
+                <input type="checkbox" value="${escapeHtml(item.id)}" ${checked} />
+                <span class="outline-knowledge-item-copy">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <em>${description}</em>
+                </span>
+              </label>
+            `;
+          })
+          .join("");
+        knowledgeConfigModal.hidden = false;
+      }
+
+      function closeKnowledgeConfigModal() {
+        knowledgeConfigModal.hidden = true;
+      }
+
+      function saveKnowledgeConfig() {
+        if (!currentKnowledgeConfigTopLevel) {
+          closeKnowledgeConfigModal();
+          return;
+        }
+
+        const selectedIds = Array.from(knowledgeConfigList.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+        outlineGroups = outlineGroups.map((group) =>
+          group.topLevel === currentKnowledgeConfigTopLevel
+            ? {
+                ...group,
+                knowledgeBaseIds: selectedIds
+              }
+            : group
+        );
+        saveOutline();
+        renderOutline();
+        closeKnowledgeConfigModal();
+      }
+
+      async function regenerateFullOutline() {
+        if (!currentDraft?.requirement?.trim()) {
+          setStatus("缺少方案需求", "error");
+          return;
+        }
+
+        retryOutlineButton.disabled = true;
+        setStatus("生成中...", "loading");
+
+        try {
+          setStatus("生成一级目录...", "loading");
+          const blueprint = await requestLevelOneBlueprint();
+          const groups = [];
+          for (let index = 0; index < blueprint.length; index += 1) {
+            setStatus(`扩展第 ${index + 1}/${blueprint.length} 个一级章节...`, "loading");
+            const content = await requestDetailedOutlineForTopLevel(blueprint[index]);
+            const parsedGroups = parseOutlineText(content);
+            const matchedGroup = parsedGroups.find((group) => group.topLevel === blueprint[index].id) || parsedGroups[0];
+            if (!matchedGroup) {
+              throw new Error(`一级章节 ${blueprint[index].id} 未解析出有效细纲。`);
+            }
+            groups.push({
+              ...matchedGroup,
+              thought: blueprint[index].thought || ""
+            });
+          }
+          outlineGroups = groups;
+          if (!outlineGroups.length) {
+            throw new Error("未能解析出有效的大纲结构。");
+          }
+          saveOutline();
+          renderOutline();
+          setStatus(`已生成 ${outlineGroups.length} 个一级目录`, "success");
+          outlineSummaryText.textContent = "已按一级目录完成切分展示，可直接在下方逐项调整结构与层级内容。";
+        } catch (error) {
+          setStatus(error.message, "error");
+        } finally {
+          retryOutlineButton.disabled = false;
+        }
+      }
+
+      async function regenerateSection() {
+        if (!currentRegenerateTopLevel || !currentDraft) {
+          closeModal();
+          return;
+        }
+
+        modalSubmit.disabled = true;
+        modalSubmit.textContent = "生成中...";
+
+        const targetGroup = outlineGroups.find((group) => group.topLevel === currentRegenerateTopLevel);
+        if (!targetGroup) {
+          modalSubmit.disabled = false;
+          modalSubmit.textContent = "重新生成";
+          closeModal();
+          return;
+        }
+
+        const plainGroupTitle = stripOutlineNumbering(targetGroup.title);
+        const promptConfig = getLatestPromptConfig();
+        const prompt = renderPrompt(promptConfig.outlineRegenerateUser, {
+          groupTitle: plainGroupTitle,
+          planName: currentDraft.name || "项目申报方案",
+          requirement: currentDraft.requirement,
+          attachmentContext: buildAttachmentContext(currentDraft.attachment),
+          thought: modalThought.value.trim(),
+          maxLevel: modalLevel.value,
+          topLevelId: currentRegenerateTopLevel
+        });
+
+        try {
+          const content = await requestOutlineJson(
+            prompt,
+            promptConfig.outlineRegenerateSystem,
+            4096
+          );
+          const parsedGroups = parseOutlineTextForTopLevel(content, currentRegenerateTopLevel, plainGroupTitle);
+          const nextGroup = parsedGroups.find((group) => group.topLevel === currentRegenerateTopLevel) || parsedGroups[0];
+          if (!nextGroup) {
+            console.error("outline-regenerate-parse-failed", { currentRegenerateTopLevel, content });
+            throw new Error("未解析出目标一级目录，请检查提示词是否要求第一行输出 1 级标题。");
+          }
+          validateOutlineLevels(nextGroup, modalLevel.value);
+          const previousLines = serializeGroupLines(targetGroup);
+          const nextLines = serializeGroupLines(nextGroup);
+          if (!nextLines || nextLines === previousLines) {
+            console.warn("outline-regenerate-no-change", {
+              topLevel: currentRegenerateTopLevel,
+              prompt,
+              content,
+              previousLines,
+              nextLines
+            });
+            throw new Error("重新生成已完成，但模型返回结果与当前目录相同，请调整思路内容或层级设置后重试。");
+          }
+          outlineGroups = outlineGroups.map((group) =>
+            group.topLevel === currentRegenerateTopLevel
+              ? {
+                  ...nextGroup,
+                  thought: modalThought.value.trim()
+                }
+              : group
+          );
+          saveOutline();
+          renderOutline();
+          setStatus(`已更新章节 ${currentRegenerateTopLevel}`, "success");
+          closeModal();
+        } catch (error) {
+          console.error("outline-regenerate-failed", {
+            topLevel: currentRegenerateTopLevel,
+            maxLevel: modalLevel.value,
+            error,
+            thought: modalThought.value.trim()
+          });
+          setStatus(error.message, "error");
+        } finally {
+          modalSubmit.disabled = false;
+          modalSubmit.textContent = "重新生成";
+        }
+      }
+
+      function restoreDraft() {
+        const record = window.ReportTaskStore.ensureCurrentRecord();
+        if (!record?.draft) {
+          outlineEmptyState.hidden = false;
+          setStatus("缺少需求", "error");
+          return;
+        }
+
+        try {
+          currentDraft = record.draft;
+        } catch (error) {
+          outlineEmptyState.hidden = false;
+          setStatus("需求读取失败", "error");
+          return;
+        }
+
+        outlineSummaryTitle.textContent = currentDraft.name || "项目申报方案";
+      }
+
+      function restoreOutline() {
+        const record = window.ReportTaskStore.getCurrentRecord();
+        const payload = record?.outline;
+        if (!payload || !currentDraft) {
+          outlineEmptyState.hidden = false;
+          setStatus("待生成", "idle");
+          return;
+        }
+
+        try {
+          if (payload.signature !== buildDraftSignature(currentDraft)) {
+            outlineEmptyState.hidden = false;
+            setStatus("待生成", "idle");
+            return;
+          }
+          outlineGroups = payload.groups || [];
+          renderOutline();
+          if (outlineGroups.length > 0) {
+            setStatus(`已生成 ${outlineGroups.length} 个一级目录`, "success");
+          } else {
+            outlineEmptyState.hidden = false;
+          }
+        } catch (error) {
+          outlineEmptyState.hidden = false;
+          setStatus("大纲读取失败", "error");
+        }
+      }
+
+      function closeModal() {
+        modal.hidden = true;
+      }
+
+      retryOutlineButton.addEventListener("click", regenerateFullOutline);
+      modalCancel.addEventListener("click", closeModal);
+      modalSubmit.addEventListener("click", regenerateSection);
+      knowledgeConfigCancel.addEventListener("click", closeKnowledgeConfigModal);
+      knowledgeConfigSubmit.addEventListener("click", saveKnowledgeConfig);
+
+      modal.addEventListener("click", (event) => {
+        if (event.target.dataset.closeModal === "true") {
+          closeModal();
+        }
+      });
+
+      knowledgeConfigModal.addEventListener("click", (event) => {
+        if (event.target.dataset.closeKnowledgeConfig === "true") {
+          closeKnowledgeConfigModal();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) {
+          closeModal();
+        }
+        if (event.key === "Escape" && !knowledgeConfigModal.hidden) {
+          closeKnowledgeConfigModal();
+        }
+      });
+
+      restoreDraft();
+      restoreOutline();
+    </script>
+  </body>
+</html>
