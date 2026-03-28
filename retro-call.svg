@@ -1,0 +1,15 @@
+<svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="220" fill="#F1D14A"/>
+  <ellipse cx="176" cy="165" rx="61" ry="14" fill="#C49A17" fill-opacity="0.45"/>
+  <path d="M99 162C99 155.373 104.373 150 111 150H210C216.627 150 222 155.373 222 162V174H99V162Z" fill="#D2A119"/>
+  <rect x="121" y="93" width="79" height="65" rx="11" fill="#E2B124"/>
+  <rect x="127" y="99" width="67" height="53" rx="8" fill="#F0C94A"/>
+  <circle cx="160.5" cy="125.5" r="21.5" fill="#E9DBA8" stroke="#89630C" stroke-width="2"/>
+  <circle cx="160.5" cy="125.5" r="15.5" fill="#F7F0D3" stroke="#89630C" stroke-width="1.5"/>
+  <circle cx="160.5" cy="125.5" r="3.5" fill="#89630C"/>
+  <path d="M160.5 110V125.5L172 132" stroke="#89630C" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M132 94C132 76.3269 146.327 62 164 62H180C191.046 62 200 70.9543 200 82V88C200 93.5228 195.523 98 190 98H182C176.477 98 172 93.5228 172 88V83C172 77.4772 167.523 73 162 73H153C144.716 73 138 79.7157 138 88V95C138 100.523 133.523 105 128 105H122C116.477 105 112 100.523 112 95V86C112 66.1177 128.118 50 148 50H175" stroke="#E2B124" stroke-width="12" stroke-linecap="round"/>
+  <path d="M96 174C102.626 174 108 168.627 108 162V145" stroke="#C08B12" stroke-width="5" stroke-linecap="round"/>
+  <path d="M89 173C89 173 92.5 162.5 103 161" stroke="#9E710D" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M83 169C83 169 87 156 102 154" stroke="#9E710D" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
